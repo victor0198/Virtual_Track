@@ -1,0 +1,142 @@
+tiles:
+- [asphalt   , asphalt    , asphalt      , asphalt     , asphalt       , asphalt     , asphalt     , asphalt     , asphalt]
+- [asphalt   , straight/S , 3way_left/W  , straight/S  , curve_left/N  , asphalt     , curve_left/W, curve_left/N, asphalt]
+- [asphalt   , asphalt    , straight/W   , asphalt     , straight/W    , asphalt     , straight/W  , straight/W  , asphalt]
+- [asphalt   , asphalt    , 3way_left/S  , straight/S  , 4way          , straight/S  , curve_left/E, parking/W   , asphalt]
+- [asphalt   , asphalt    , straight/W   , asphalt     , straight/W    , asphalt     , asphalt     , straightD/W , asphalt]
+- [asphalt   , asphalt    , curve_right/W, straight/S  , 3way_left/E   , straightD/S , straightD/S , curve_left/E, asphalt]
+- [asphalt   , asphalt    , asphalt      , asphalt     , asphalt       , asphalt     , asphalt     , asphalt     , asphalt]
+
+objects:
+
+- kind: bb
+  pos: [1.7, 1.6]
+  rotate: 180
+  height: 0.15
+
+- kind: traffic_light
+  pos: [2.15, 1.8]
+  rotate: 180
+  height: 0.24
+
+- kind: sign_stop
+  pos: [2.75, 1.9]
+  rotate: 270
+  height: 0.2
+
+- kind: sign_priority
+  pos: [2.9, 1.25]
+  rotate: 0
+  height: 0.2
+
+
+
+- kind: sign_priority
+  pos: [2.75, 3.9]
+  rotate: 270
+  height: 0.2
+
+- kind: sign_priority
+  pos: [2.25, 3.1]
+  rotate: 90
+  height: 0.2
+
+- kind: sign_stop
+  pos: [2.9, 3.25]
+  rotate: 0
+  height: 0.2
+
+
+
+- kind: parking_sign
+  pos: [7.27, 2.98]
+  rotate: 90
+  height: 0.2
+
+- kind: parking_sign
+  pos: [7.27, 3.8]
+  rotate: 90
+  height: 0.2
+
+
+
+- kind: sign_priority
+  pos: [4.1, 5.75]
+  rotate: 180
+  height: 0.2
+
+- kind: sign_stop
+  pos: [4.25, 5.1]
+  rotate: 90
+  height: 0.2
+
+- kind: sign_priority
+  pos: [4.9, 5.25]
+  rotate: 0
+  height: 0.2
+
+
+
+- kind: sign_pedestrian
+  pos: [6, 5.75]
+  rotate: 180
+  height: 0.2
+
+- kind: sign_pedestrian
+  pos: [6.4, 5.25]
+  rotate: 0
+  height: 0.2
+
+
+- kind: sign_stop
+  pos: [4.1, 3.75]
+  rotate: 180
+  height: 0.2
+
+- kind: sign_priority
+  pos: [4.25, 3.1]
+  rotate: 90
+  height: 0.2
+
+- kind: sign_priority
+  pos: [4.9, 3.25]
+  rotate: 0
+  height: 0.2
+
+- kind: sign_stop
+  pos: [4.75, 3.9]
+  rotate: 270
+  height: 0.2
+
+
+
+
+- kind: building
+  pos: [3.46, 2.67]
+  rotate: 180
+  height: 0.6
+
+- kind: house
+  pos: [6, 4.5]
+  rotate: 90
+  height: 0.5
+
+- kind: barrier
+  pos: [1.08, 0.16]
+  rotate: 182.56
+  height: 0.08
+
+- kind: cone
+  pos: [3.76, 1.95]
+  rotate: 85.59
+  height: 0.08
+
+
+- kind: pedestrian
+  pos: [6.2, 5.80]
+  rotate: 90
+  height: 0.17
+  static: False
+
+
+tile_size: 1.8

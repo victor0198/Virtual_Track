@@ -1,0 +1,14 @@
+item{
+    id: 1
+    name: 'priority'
+}
+
+item{
+    id: 2
+    name: 'stop'
+}
+
+item{
+    id: 3
+    name: 'parking'
+}
