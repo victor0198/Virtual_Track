@@ -1,0 +1,26 @@
+<annotation>
+	<folder>utm_screen</folder>
+	<filename>utm_1579984132.8_6.747_10.042_5.91.png</filename>
+	<path>/home/dellen/Documents/bfmc/Virtual_Track/utm_screen/utm_1579984132.8_6.747_10.042_5.91.png</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>640</width>
+		<height>480</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>priority</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>355</xmin>
+			<ymin>99</ymin>
+			<xmax>395</xmax>
+			<ymax>144</ymax>
+		</bndbox>
+	</object>
+</annotation>

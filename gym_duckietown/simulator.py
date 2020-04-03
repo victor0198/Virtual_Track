@@ -60,7 +60,7 @@ from gym_duckietown.object_detection.utils import visualization_utils as vis_uti
 
 MODEL_NAME = 'gym_duckietown/inference_ssd_graph'
 PATH_TO_FROZEN_GRAPH = MODEL_NAME + '/frozen_inference_graph.pb'
-PATH_TO_LABELS = 'gym_duckietown/inference_graph/label_map.pbtxt'
+PATH_TO_LABELS = 'gym_duckietown/inference_ssd_graph/label_map.pbtxt'
 import os
 
 print(os.getcwd())
@@ -1692,7 +1692,7 @@ class Simulator(gym.Env):
 
         image_np = img_array
 
-        if type == 'human' and step > 20000:
+        if type == 'human' and step > 200:
             # resize
             # img_array_resized = cv2.resize(img_array, (image_width, image_height), interpolation=cv2.INTER_AREA)
 

@@ -1,0 +1,10 @@
+Cython==0.29.14
+numpy==1.18.1
+opencv-python==4.2.0.32
+protobuf==3.11.3
+pycocotools==2.0
+tensorboard==1.13.1
+tensorflow==1.13.2
+tensorflow-estimator==1.13.0
+tensorflow-object-detection-api==0.1.1
+tensorflow-plot==0.3.0

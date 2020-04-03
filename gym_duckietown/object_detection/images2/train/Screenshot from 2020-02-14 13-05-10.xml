@@ -1,0 +1,26 @@
+<annotation>
+	<folder>resized2_bfmc</folder>
+	<filename>Screenshot from 2020-02-14 13-05-10.png</filename>
+	<path>/home/dellen/Pictures/sign_training_data/resized2_bfmc/Screenshot from 2020-02-14 13-05-10.png</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>640</width>
+		<height>480</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>stop</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>528</xmin>
+			<ymin>18</ymin>
+			<xmax>578</xmax>
+			<ymax>68</ymax>
+		</bndbox>
+	</object>
+</annotation>

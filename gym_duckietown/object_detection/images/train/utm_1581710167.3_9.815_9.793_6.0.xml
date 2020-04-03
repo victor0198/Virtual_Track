@@ -1,0 +1,26 @@
+<annotation>
+	<folder>utm_screen1</folder>
+	<filename>utm_1581710167.3_9.815_9.793_6.0.png</filename>
+	<path>/home/dellen/Documents/bfmc/Virtual_Track/make_model/utm_screen1/utm_1581710167.3_9.815_9.793_6.0.png</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>640</width>
+		<height>480</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>pedestrian</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>141</xmin>
+			<ymin>113</ymin>
+			<xmax>189</xmax>
+			<ymax>192</ymax>
+		</bndbox>
+	</object>
+</annotation>

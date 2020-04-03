@@ -1,0 +1,26 @@
+<annotation>
+	<folder>utm_screen1</folder>
+	<filename>utm_1581710113.7_9.525_10.1_6.11.png</filename>
+	<path>/home/dellen/Documents/bfmc/Virtual_Track/make_model/utm_screen1/utm_1581710113.7_9.525_10.1_6.11.png</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>640</width>
+		<height>480</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>pedestrian_cross</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>320</xmin>
+			<ymin>98</ymin>
+			<xmax>344</xmax>
+			<ymax>121</ymax>
+		</bndbox>
+	</object>
+</annotation>

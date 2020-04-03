@@ -1,0 +1,26 @@
+<annotation>
+	<folder>utm_screen1</folder>
+	<filename>utm_1581710077.9_2.269_2.866_6.27.png</filename>
+	<path>/home/dellen/Documents/bfmc/Virtual_Track/make_model/utm_screen1/utm_1581710077.9_2.269_2.866_6.27.png</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>640</width>
+		<height>480</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>green_light</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>435</xmin>
+			<ymin>83</ymin>
+			<xmax>459</xmax>
+			<ymax>145</ymax>
+		</bndbox>
+	</object>
+</annotation>
