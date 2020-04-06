@@ -5,7 +5,7 @@
 This script allows you to manually control the simulator or Duckiebot
 using the keyboard arrows.
 """
-self_driving = True
+self_driving = False
 
 import sys
 import argparse

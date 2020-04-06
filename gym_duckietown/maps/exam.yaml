@@ -1,0 +1,38 @@
+tiles:
+  - [asphalt      , asphalt       , asphalt      , asphalt     , asphalt     , asphalt      , asphalt     , asphalt      , asphalt]
+  - [asphalt      , curve_left/W  , straight/S   , 3way_left/W , straightD/S , straightD/S  , straight/S  , curve_left/N , asphalt]
+  - [asphalt      , straight/E    , asphalt      , straight/E  , asphalt     , asphalt      , asphalt     , straight/E   , asphalt]
+  - [asphalt      , curve_left/S  , straight/S   , 4way        , straight/S  , curve_left/N , asphalt     , straight/E   , asphalt]
+  - [asphalt      , asphalt       , asphalt      , straight/E  , asphalt     , straight/E   , asphalt     , straight/E   , asphalt]
+  - [curve_left/W , parking/N     , straight/S   , 3way_left/E , straight/S  , curve_left/E , asphalt     , straight/E   , asphalt]
+  - [curve_left/S , straight/S    , straight/S   , straight/S  , straight/S  , straight/S   , straight/S  , curve_left/E , asphalt]
+  - [asphalt      , asphalt       , asphalt      , asphalt     , asphalt     , asphalt      , asphalt     , asphalt      , asphalt]
+
+objects:
+
+- kind: sign_priority
+  pos : [3.9, 3.25]
+  rotate: 0
+  height: 0.2
+
+- kind: sign_pedestrian
+  pos: [1.3, 3]
+  rotate: 90
+  height: 0.2
+
+- kind: sign_stop
+  pos: [3.9, 5.25]
+  rotate: 0
+  height: 0.2
+
+- kind: parking_sign
+  pos: [2, 5.25]
+  rotate: 0
+  height: 0.2
+
+- kind: parking_sign
+  pos: [1.15, 5.25]
+  rotate: 0
+  height: 0.2
+
+tile_size: 1.8

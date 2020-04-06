@@ -9,6 +9,7 @@ import geometry
 # import cv2
 import numpy as np
 
+
 @dataclass
 class DoneRewardInfo:
     done: bool
@@ -30,7 +31,6 @@ from .objmesh import *
 # Randomization code
 from .randomization import Randomizer
 
-
 # for tensorflow detection
 import os
 import six.moves.urllib as urllib
@@ -39,7 +39,7 @@ import tarfile
 import tensorflow as tf
 import tflite
 import zipfile
-
+import cv2
 import tensorflow as tf
 # tf.disable_v2_behavior()
 
@@ -57,24 +57,37 @@ from gym_duckietown.object_detection.utils import label_map_util
 
 from gym_duckietown.object_detection.utils import visualization_utils as vis_util
 
-
-MODEL_NAME = 'gym_duckietown/inference_ssd_graph'
-PATH_TO_FROZEN_GRAPH = MODEL_NAME + '/frozen_inference_graph.pb'
-PATH_TO_LABELS = 'gym_duckietown/inference_ssd_graph/label_map.pbtxt'
+MODEL_NAME = 'gym_duckietown/object_detection/inference_graph1'
+PATH_TO_FROZEN_GRAPH = MODEL_NAME + '/detect.tflite'
+PATH_TO_LABELS = 'gym_duckietown/object_detection/inference_graph1/labelmap.pbtxt'
 import os
 
 print(os.getcwd())
 
-detection_graph = tf.Graph()
-with detection_graph.as_default():
-  od_graph_def = tf.compat.v1.GraphDef()
-  with tf.io.gfile.GFile(PATH_TO_FROZEN_GRAPH, 'rb') as fid:
-    serialized_graph = fid.read()
-    od_graph_def.ParseFromString(serialized_graph)
-    tf.import_graph_def(od_graph_def, name='')
+with open(PATH_TO_LABELS, 'r') as f:
+    labels = [line.strip() for line in f.readlines()]
 
-category_index = label_map_util.create_category_index_from_labelmap(PATH_TO_LABELS, use_display_name=True)
+interpreter = tf.lite.Interpreter(model_path=PATH_TO_FROZEN_GRAPH)
+interpreter.allocate_tensors()
 
+input_details = interpreter.get_input_details()
+output_details = interpreter.get_output_details()
+img_height = input_details[0]['shape'][1]
+img_width = input_details[0]['shape'][2]
+floating_model = (input_details[0]['dtype'] == np.float32)
+input_mean = 127.5
+input_std = 127.5
+
+# detection_graph = tf.Graph()
+# with detection_graph.as_default():
+#   od_graph_def = tf.compat.v1.GraphDef()
+#   with tf.io.gfile.GFile(PATH_TO_FROZEN_GRAPH, 'rb') as fid:
+#     serialized_graph = fid.read()
+#     od_graph_def.ParseFromString(serialized_graph)
+#     tf.import_graph_def(od_graph_def, name='')
+#
+# category_index = label_map_util.create_category_index_from_labelmap(PATH_TO_LABELS, use_display_name=True)
+#
 # end tensorflow detection
 
 # Rendering window size
@@ -159,6 +172,7 @@ LanePosition0 = namedtuple('LanePosition', 'dist dot_dir angle_deg angle_rad')
 
 covered_front_zones = 0
 covered_rear_zones = 0
+
 
 class LanePosition(LanePosition0):
 
@@ -271,10 +285,10 @@ class Simulator(gym.Env):
 
         # Two-tuple of wheel torques, each in the range [-1, 1]
         self.action_space = spaces.Box(
-                low=-1,
-                high=1,
-                shape=(2,),
-                dtype=np.float32
+            low=-1,
+            high=1,
+            shape=(2,),
+            dtype=np.float32
         )
 
         self.camera_width = camera_width
@@ -285,10 +299,10 @@ class Simulator(gym.Env):
         # Note: the pixels are in uint8 format because this is more compact
         # than float32 if sent over the network or stored in a dataset
         self.observation_space = spaces.Box(
-                low=0,
-                high=255,
-                shape=(self.camera_height, self.camera_width, 3),
-                dtype=np.uint8
+            low=0,
+            high=255,
+            shape=(self.camera_height, self.camera_width, 3),
+            dtype=np.uint8
         )
 
         self.reward_range = (-1000, 1000)
@@ -302,17 +316,17 @@ class Simulator(gym.Env):
 
         # For displaying text
         self.text_label = pyglet.text.Label(
-                font_name="Arial",
-                font_size=14,
-                x=5,
-                y=WINDOW_HEIGHT - 19
+            font_name="Arial",
+            font_size=14,
+            x=5,
+            y=WINDOW_HEIGHT - 19
         )
 
         # Create a frame buffer object for the observation
         self.multi_fbo, self.final_fbo = create_frame_buffers(
-                self.camera_width,
-                self.camera_height,
-                4
+            self.camera_width,
+            self.camera_height,
+            4
         )
 
         # Array to render the image into (for observation rendering)
@@ -320,15 +334,13 @@ class Simulator(gym.Env):
 
         # Create a frame buffer object for human rendering
         self.multi_fbo_human, self.final_fbo_human = create_frame_buffers(
-                WINDOW_WIDTH,
-                WINDOW_HEIGHT,
-                4
+            WINDOW_WIDTH,
+            WINDOW_HEIGHT,
+            4
         )
 
         # Array to render the image into (for human rendering)
         self.img_array_human = np.zeros(shape=(WINDOW_HEIGHT, WINDOW_WIDTH, 3), dtype=np.uint8)
-
-
 
         # allowed angle in lane for starting position
         self.accept_start_angle_deg = accept_start_angle_deg
@@ -403,7 +415,6 @@ class Simulator(gym.Env):
 
         # Robot's current speed
         self.speed = 0
-
 
         if self.randomize_maps_on_reset:
             map_name = np.random.choice(self.map_names)
@@ -516,7 +527,6 @@ class Simulator(gym.Env):
 
         # Keep trying to find a valid spawn position on this tile
 
-
         for _ in range(MAX_SPAWN_ATTEMPTS):
             i, j = self.user_tile_start
 
@@ -526,7 +536,8 @@ class Simulator(gym.Env):
             propose_pos = np.array([x, 0, z])
 
             # Choose a random direction
-            propose_angle = self.np_random.uniform((self.accept_start_angle_deg) * math.pi / 180, (self.accept_start_angle_deg - 1) * math.pi / 180)
+            propose_angle = self.np_random.uniform((self.accept_start_angle_deg) * math.pi / 180,
+                                                   (self.accept_start_angle_deg - 1) * math.pi / 180)
 
             # logger.debug('Sampled %s %s angle %s' % (propose_pos[0],
             #                                          propose_pos[1],
@@ -727,7 +738,7 @@ class Simulator(gym.Env):
                     obj = DuckiebotObj(obj_desc, self.domain_rand, SAFETY_RAD_MULT, WHEEL_DIST,
                                        ROBOT_WIDTH, ROBOT_LENGTH)
                 elif kind == "duckie" or kind == "pedestrian":
-                    obj = DuckieObj(obj_desc, self.domain_rand, SAFETY_RAD_MULT, 0.5*self.road_tile_size)
+                    obj = DuckieObj(obj_desc, self.domain_rand, SAFETY_RAD_MULT, 0.5 * self.road_tile_size)
                 else:
                     msg = 'I do not know what object this is: %s' % kind
                     raise Exception(msg)
@@ -842,8 +853,8 @@ class Simulator(gym.Env):
         # Find the corners for each candidate tile
         drivable_tiles = np.array([
             tile_corners(
-                    self._get_tile(pt[0], pt[1])['coords'],
-                    self.road_tile_size
+                self._get_tile(pt[0], pt[1])['coords'],
+                self.road_tile_size
             ).T for pt in drivable_tiles
         ])
 
@@ -1223,10 +1234,10 @@ class Simulator(gym.Env):
 
         # # Check collisions with static objects
         collision = intersects(
-                agent_corners,
-                self.collidable_corners,
-                agent_norm,
-                self.collidable_norms
+            agent_corners,
+            self.collidable_corners,
+            agent_norm,
+            self.collidable_norms
         )
 
         if collision:
@@ -1263,7 +1274,6 @@ class Simulator(gym.Env):
                         self._drivable_pos(l_pos) and
                         self._drivable_pos(r_pos) and
                         self._drivable_pos(f_pos))
-
 
         # Recompute the bounding boxes (BB) for the agent
         agent_corners = get_agent_corners(pos, angle)
@@ -1392,7 +1402,6 @@ class Simulator(gym.Env):
         # cp = [gx, (grid_height - 1) * tile_size - gz]
         cp = [gx, grid_height * tile_size - gz]
 
-
         return geometry.SE2_from_translation_angle(cp, angle)
 
     def weird_from_cartesian(self, q: np.ndarray) -> Tuple[list, float]:
@@ -1502,10 +1511,10 @@ class Simulator(gym.Env):
         gl.glMatrixMode(gl.GL_PROJECTION)
         gl.glLoadIdentity()
         gl.gluPerspective(
-                self.cam_fov_y,
-                width / float(height),
-                0.04,
-                100.0
+            self.cam_fov_y,
+            width / float(height),
+            0.04,
+            100.0
         )
 
         # Set modelview matrix
@@ -1518,7 +1527,6 @@ class Simulator(gym.Env):
 
         x, y, z = pos + self.cam_offset
         dx, dy, dz = get_dir_vec(angle)
-
 
         gl.glMatrixMode(gl.GL_MODELVIEW)
         gl.glLoadIdentity()
@@ -1537,36 +1545,36 @@ class Simulator(gym.Env):
         # dy = -dy
         # dz = -dz
 
-        move_cam = 0.17 # 0.13
+        move_cam = 0.17  # 0.13
         x = x + move_cam * dx
         y = y + move_cam * dy
         z = z + move_cam * dz
 
         if top_down:
             gl.gluLookAt(
-                    # Eye position
-                    (self.grid_width * self.road_tile_size) / 2,
-                    5,
-                    (self.grid_height * self.road_tile_size) / 2,
-                    # Target
-                    (self.grid_width * self.road_tile_size) / 2,
-                    0,
-                    (self.grid_height * self.road_tile_size) / 2,
-                    # Up vector
-                    0, 0, -1.0
+                # Eye position
+                (self.grid_width * self.road_tile_size) / 2,
+                5,
+                (self.grid_height * self.road_tile_size) / 2,
+                # Target
+                (self.grid_width * self.road_tile_size) / 2,
+                0,
+                (self.grid_height * self.road_tile_size) / 2,
+                # Up vector
+                0, 0, -1.0
             )
         else:
             gl.gluLookAt(
-                    # Eye position
-                    x,
-                    y,
-                    z,
-                    # Target
-                    x + dx,
-                    y + dy,
-                    z + dz,
-                    # Up vector
-                    0, 1.0, 0.0
+                # Eye position
+                x,
+                y,
+                z,
+                # Target
+                x + dx,
+                y + dy,
+                z + dz,
+                # Up vector
+                0, 1.0, 0.0
             )
 
         # Draw the ground quad
@@ -1658,25 +1666,25 @@ class Simulator(gym.Env):
         gl.glBindFramebuffer(gl.GL_READ_FRAMEBUFFER, multi_fbo)
         gl.glBindFramebuffer(gl.GL_DRAW_FRAMEBUFFER, final_fbo)
         gl.glBlitFramebuffer(
-                0, 0,
-                width, height,
-                0, 0,
-                width, height,
-                gl.GL_COLOR_BUFFER_BIT,
-                gl.GL_LINEAR
+            0, 0,
+            width, height,
+            0, 0,
+            width, height,
+            gl.GL_COLOR_BUFFER_BIT,
+            gl.GL_LINEAR
         )
 
         # Copy the frame buffer contents into a numpy array
         # Note: glReadPixels reads starting from the lower left corner
         gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, final_fbo)
         gl.glReadPixels(
-                0,
-                0,
-                width,
-                height,
-                gl.GL_RGB,
-                gl.GL_UNSIGNED_BYTE,
-                img_array.ctypes.data_as(POINTER(gl.GLubyte))
+            0,
+            0,
+            width,
+            height,
+            gl.GL_RGB,
+            gl.GL_UNSIGNED_BYTE,
+            img_array.ctypes.data_as(POINTER(gl.GLubyte))
         )
 
         # Unbind the frame buffer
@@ -1692,7 +1700,7 @@ class Simulator(gym.Env):
 
         image_np = img_array
 
-        if type == 'human' and step > 200:
+        if type == 'human' and step > 10000:
             # resize
             # img_array_resized = cv2.resize(img_array, (image_width, image_height), interpolation=cv2.INTER_AREA)
 
@@ -1706,98 +1714,127 @@ class Simulator(gym.Env):
             # thickness = 2
             # img_array = cv2.rectangle(img_array, start_point, end_point, color, thickness)
 
-
-
-
-
             # img_array = cv2.resize(img_array, (image_width, image_height), interpolation=cv2.INTER_AREA)
 
             print("----------------START-----------------")
 
-            with detection_graph.as_default():
-                with tf.compat.v1.Session() as sess:
-                    # Get handles to input and output tensors
-                    ops = tf.compat.v1.get_default_graph().get_operations()
-                    all_tensor_names = {output.name for op in ops for output in op.outputs}
-                    tensor_dict = {}
-                    for key in [
-                        'num_detections', 'detection_boxes', 'detection_scores',
-                        'detection_classes', 'detection_masks'
-                    ]:
-                        tensor_name = key + ':0'
-                        if tensor_name in all_tensor_names:
-                            tensor_dict[key] = tf.compat.v1.get_default_graph().get_tensor_by_name(
-                                tensor_name)
+            image = img_array
+            image_gray = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            imH, imW, _ = image.shape
+            image_resized = cv2.resize(image_gray, (img_width, img_height))
+            input_data = np.expand_dims(image_resized, axis=0)
+            if floating_model:
+                input_data = (np.float32(input_data) - input_mean) / input_std
 
+            interpreter.set_tensor(input_details[0]['index'], input_data)
+            interpreter.invoke()
 
-                    image_np = img_array
-                    # image_np = cv2.resize(image_np, (400, 300))
+            boxes = interpreter.get_tensor(output_details[0]['index'])[0]
+            classes = interpreter.get_tensor(output_details[1]['index'])[0]
+            scores = interpreter.get_tensor(output_details[2]['index'])[0]
+            print(classes)
+            for i in range(len(scores)):
+                # 0.3 confidence threshold
+                if (scores[i] > 0.6) and (scores[i] <= 1.0):
+                    ymin = int(max(1, boxes[i][0] * imH))
+                    xmin = int(max(1, boxes[i][1] * imW))
+                    ymax = int(min(imH, (boxes[i][2] * imH)))
+                    xmax = int(min(imW, (boxes[i][3]) * imW))
 
-                    # Actual detection.
-                    # ----------------
-                    image = image_np
-                    graph = detection_graph
-                    if 'detection_masks' in tensor_dict:
-                        # The following processing is only for single image
-                        detection_boxes = tf.squeeze(tensor_dict['detection_boxes'], [0])
-                        detection_masks = tf.squeeze(tensor_dict['detection_masks'], [0])
-                        # Reframe is required to translate mask from box coordinates to image coordinates and fit the image size.
-                        real_num_detection = tf.cast(tensor_dict['num_detections'][0], tf.int32)
-                        detection_boxes = tf.slice(detection_boxes, [0, 0], [real_num_detection, -1])
-                        detection_masks = tf.slice(detection_masks, [0, 0, 0], [real_num_detection, -1, -1])
-                        detection_masks_reframed = utils_ops.reframe_box_masks_to_image_masks(
-                            detection_masks, detection_boxes, image.shape[0], image.shape[1])
-                        detection_masks_reframed = tf.cast(
-                            tf.greater(detection_masks_reframed, 0.5), tf.uint8)
-                        # Follow the convention by adding back the batch dimension
-                        tensor_dict['detection_masks'] = tf.expand_dims(
-                            detection_masks_reframed, 0)
-                    image_tensor = tf.compat.v1.get_default_graph().get_tensor_by_name('image_tensor:0')
+                    cv2.rectangle(image, (xmin, ymin), (xmax, ymax), (10, 255, 0), 2)
 
-                    # Run inference
-                    output_dict = sess.run(tensor_dict,
-                                           feed_dict={image_tensor: np.expand_dims(image, 0)})
+                    object_name = labels[int(classes[i])]
+                    label = '%s: %d%%' % (object_name, int(scores[i] * 100))
+                    labelsize, baseline = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)
+                    label_ymin = max(ymin, labelsize[1] + 10)
+                    cv2.rectangle(image, (xmin, label_ymin - labelsize[1] - 10),
+                                  (xmin + labelsize[0], label_ymin + baseline - 10), (255, 255, 255), cv2.FILLED)
+                    cv2.putText(image, label, (xmin, label_ymin - 7), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
+                    image_np = image
+            # with detection_graph.as_default():
+            #     with tf.compat.v1.Session() as sess:
+            #         # Get handles to input and output tensors
+            #         ops = tf.compat.v1.get_default_graph().get_operations()
+            #         all_tensor_names = {output.name for op in ops for output in op.outputs}
+            #         tensor_dict = {}
+            #         for key in [
+            #             'num_detections', 'detection_boxes', 'detection_scores',
+            #             'detection_classes', 'detection_masks'
+            #         ]:
+            #             tensor_name = key + ':0'
+            #             if tensor_name in all_tensor_names:
+            #                 tensor_dict[key] = tf.compat.v1.get_default_graph().get_tensor_by_name(
+            #                     tensor_name)
+            #
+            #
+            #         image_np = img_array
+            # image_np = cv2.resize(image_np, (400, 300))
 
-                    # all outputs are float32 numpy arrays, so convert types as appropriate
-                    output_dict['num_detections'] = int(output_dict['num_detections'][0])
-                    output_dict['detection_classes'] = output_dict[
-                        'detection_classes'][0].astype(np.uint8)
-                    output_dict['detection_boxes'] = output_dict['detection_boxes'][0]
-                    output_dict['detection_scores'] = output_dict['detection_scores'][0]
-                    if 'detection_masks' in output_dict:
-                        output_dict['detection_masks'] = output_dict['detection_masks'][0]
-                    # ----------------
+            # Actual detection.
+            # ----------------
+            # image = image_np
+            # graph = detection_graph
+            # if 'detection_masks' in tensor_dict:
+            #     # The following processing is only for single image
+            #     detection_boxes = tf.squeeze(tensor_dict['detection_boxes'], [0])
+            #     detection_masks = tf.squeeze(tensor_dict['detection_masks'], [0])
+            #     # Reframe is required to translate mask from box coordinates to image coordinates and fit the image size.
+            #     real_num_detection = tf.cast(tensor_dict['num_detections'][0], tf.int32)
+            #     detection_boxes = tf.slice(detection_boxes, [0, 0], [real_num_detection, -1])
+            #     detection_masks = tf.slice(detection_masks, [0, 0, 0], [real_num_detection, -1, -1])
+            #     detection_masks_reframed = utils_ops.reframe_box_masks_to_image_masks(
+            #         detection_masks, detection_boxes, image.shape[0], image.shape[1])
+            #     detection_masks_reframed = tf.cast(
+            #         tf.greater(detection_masks_reframed, 0.5), tf.uint8)
+            #     # Follow the convention by adding back the batch dimension
+            #     tensor_dict['detection_masks'] = tf.expand_dims(
+            #         detection_masks_reframed, 0)
+            # image_tensor = tf.compat.v1.get_default_graph().get_tensor_by_name('image_tensor:0')
+            #
+            # # Run inference
+            # output_dict = sess.run(tensor_dict,
+            #                        feed_dict={image_tensor: np.expand_dims(image, 0)})
+            #
+            # # all outputs are float32 numpy arrays, so convert types as appropriate
+            # output_dict['num_detections'] = int(output_dict['num_detections'][0])
+            # output_dict['detection_classes'] = output_dict[
+            #     'detection_classes'][0].astype(np.uint8)
+            # output_dict['detection_boxes'] = output_dict['detection_boxes'][0]
+            # output_dict['detection_scores'] = output_dict['detection_scores'][0]
+            # if 'detection_masks' in output_dict:
+            #     output_dict['detection_masks'] = output_dict['detection_masks'][0]
+            # # ----------------
+            #
+            # # Visualization of the results of a detection.
+            # vis_util.visualize_boxes_and_labels_on_image_array(
+            #     image_np,
+            #     output_dict['detection_boxes'],
+            #     output_dict['detection_classes'],
+            #     output_dict['detection_scores'],
+            #     category_index,
+            #     instance_masks=output_dict.get('detection_masks'),
+            #     use_normalized_coordinates=True,
+            #     line_thickness=4)
+            #
+            # boxes = np.squeeze(output_dict['detection_boxes'])
+            # scores = np.squeeze(output_dict['detection_scores'])
+            # # set a min thresh score, say 0.8
+            # min_score_thresh = 0.5
+            # bboxes = boxes[scores > min_score_thresh]
+            #
+            # # get image size
+            # im_width, im_height = (600, 400)
+            # final_box = []
+            # ymin, xmin, ymax, xmax = (0, 0, 0, 0)
+            # for box in bboxes:
+            #     ymin, xmin, ymax, xmax = box
+            #     final_box.append([xmin * im_width, xmax * im_width, ymin * im_height, ymax * im_height])
+            #     print(final_box)
+            #     print("height:" + str(ymax * im_height - ymin * im_height))
 
-                    # Visualization of the results of a detection.
-                    vis_util.visualize_boxes_and_labels_on_image_array(
-                        image_np,
-                        output_dict['detection_boxes'],
-                        output_dict['detection_classes'],
-                        output_dict['detection_scores'],
-                        category_index,
-                        instance_masks=output_dict.get('detection_masks'),
-                        use_normalized_coordinates=True,
-                        line_thickness=4)
-
-                    boxes = np.squeeze(output_dict['detection_boxes'])
-                    scores = np.squeeze(output_dict['detection_scores'])
-                    # set a min thresh score, say 0.8
-                    min_score_thresh = 0.5
-                    bboxes = boxes[scores > min_score_thresh]
-
-                    # get image size
-                    im_width, im_height = (600, 400)
-                    final_box = []
-                    ymin, xmin, ymax, xmax = (0, 0, 0, 0)
-                    for box in bboxes:
-                        ymin, xmin, ymax, xmax = box
-                        final_box.append([xmin * im_width, xmax * im_width, ymin * im_height, ymax * im_height])
-                        print(final_box)
-                        print("height:" + str(ymax * im_height - ymin * im_height))
-
-                    # img_name = 'utm_stop_' + str(step) + '.png'
-                    # img_s = cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB)
-                    # cv2.imwrite(img_name, img_s)
+            # img_name = 'utm_stop_' + str(step) + '.png'
+            # img_s = cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB)
+            # cv2.imwrite(img_name, img_s)
 
             print("----------------FINISH-----------------")
 
@@ -1811,7 +1848,6 @@ class Simulator(gym.Env):
         (im_width, im_height) = image.size
         return np.array(image.getdata()).reshape(
             (im_height, im_width, 3)).astype(np.uint8)
-
 
     def draw_detection_area(self, img):
         cv2.line(img, (300, 0), (600, 0), (0, 0, 250), 2)
@@ -1834,7 +1870,8 @@ class Simulator(gym.Env):
         movex = 500
         movey = 50
         for zone_idx in range(covered_front_zones):
-            cv2.line(img, (movex + lines[zone_idx][0], movey - lines[zone_idx][1]), (movex + lines[zone_idx][2], movey - lines[zone_idx][3]), colors[zone_idx], 2)
+            cv2.line(img, (movex + lines[zone_idx][0], movey - lines[zone_idx][1]),
+                     (movex + lines[zone_idx][2], movey - lines[zone_idx][3]), colors[zone_idx], 2)
         return img
 
     def draw_rear_sensor(self, img):
@@ -1844,7 +1881,8 @@ class Simulator(gym.Env):
         movex = 500
         movey = 60
         for zone_idx in range(covered_rear_zones):
-            cv2.line(img, (movex + lines[zone_idx][0], movey + lines[zone_idx][1]), (movex + lines[zone_idx][2], movey + lines[zone_idx][3]), colors[zone_idx], 2)
+            cv2.line(img, (movex + lines[zone_idx][0], movey + lines[zone_idx][1]),
+                     (movex + lines[zone_idx][2], movey + lines[zone_idx][3]), colors[zone_idx], 2)
         return img
 
     def render_obs(self):
@@ -1854,14 +1892,14 @@ class Simulator(gym.Env):
         type = 'agent'
 
         observation = self._render_img(
-                self.camera_width,
-                self.camera_height,
-                self.multi_fbo,
-                self.final_fbo,
-                self.img_array,
-                self.step_count,
-                type,
-                top_down=False
+            self.camera_width,
+            self.camera_height,
+            self.multi_fbo,
+            self.final_fbo,
+            self.img_array,
+            self.step_count,
+            type,
+            top_down=False
         )
 
         # self.undistort - for UndistortWrapper
@@ -1884,14 +1922,14 @@ class Simulator(gym.Env):
         # Render the image
         type = 'human'
         img = self._render_img(
-                WINDOW_WIDTH,
-                WINDOW_HEIGHT,
-                self.multi_fbo_human,
-                self.final_fbo_human,
-                self.img_array_human,
-                self.step_count,
-                type,
-                top_down=top_down
+            WINDOW_WIDTH,
+            WINDOW_HEIGHT,
+            self.multi_fbo_human,
+            self.final_fbo_human,
+            self.img_array_human,
+            self.step_count,
+            type,
+            top_down=top_down
         )
 
         # self.undistort - for UndistortWrapper
@@ -1906,10 +1944,10 @@ class Simulator(gym.Env):
         if self.window is None:
             config = gl.Config(double_buffer=False)
             self.window = window.Window(
-                    width=WINDOW_WIDTH,
-                    height=WINDOW_HEIGHT,
-                    resizable=False,
-                    config=config
+                width=WINDOW_WIDTH,
+                height=WINDOW_HEIGHT,
+                resizable=False,
+                config=config
             )
 
         self.window.clear()
@@ -1931,18 +1969,18 @@ class Simulator(gym.Env):
         height = img.shape[0]
         img = np.ascontiguousarray(np.flip(img, axis=0))
         img_data = image.ImageData(
-                width,
-                height,
-                'RGB',
-                img.ctypes.data_as(POINTER(gl.GLubyte)),
-                pitch=width * 3,
+            width,
+            height,
+            'RGB',
+            img.ctypes.data_as(POINTER(gl.GLubyte)),
+            pitch=width * 3,
         )
         img_data.blit(
-                0,
-                0,
-                0,
-                width=WINDOW_WIDTH,
-                height=WINDOW_HEIGHT
+            0,
+            0,
+            0,
+            width=WINDOW_WIDTH,
+            height=WINDOW_HEIGHT
         )
 
         # Display position/state information
@@ -2032,11 +2070,11 @@ def _actual_center(pos, angle):
 
 def get_agent_corners(pos, angle):
     agent_corners = agent_boundbox(
-            pos,
-            ROBOT_WIDTH,
-            ROBOT_LENGTH,
-            get_dir_vec(angle),
-            get_right_vec(angle)
+        pos,
+        ROBOT_WIDTH,
+        ROBOT_LENGTH,
+        get_dir_vec(angle),
+        get_right_vec(angle)
     )
     return agent_corners
 
@@ -2059,6 +2097,7 @@ def get_agent_f_zones(pos, angle):
     zones = np.array(zones)
 
     return zones
+
 
 def get_agent_r_zones(pos, angle):
     zones = []
