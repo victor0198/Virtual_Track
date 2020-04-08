@@ -19,7 +19,7 @@ from gym_duckietown.envs import DuckietownEnv
 from gym_duckietown.wrappers import UndistortWrapper
 
 # from experiments.utils import save_img
-
+from gym_duckietown.simulator import apx_dist
 from tensorflow.keras.preprocessing import image
 from PIL import Image
 from tensorflow.keras.models import load_model

@@ -17,7 +17,6 @@ import gym
 import gym_duckietown
 from gym_duckietown.envs import DuckietownEnv
 from gym_duckietown.wrappers import UndistortWrapper
-
 # from experiments.utils import save_img
 
 from tensorflow.keras.preprocessing import image
@@ -25,6 +24,8 @@ from PIL import Image
 from tensorflow.keras.models import load_model
 from time import time
 import pygame as pg
+
+
 # keras model
 if self_driving:
     print("!!!------ LOADING Keras ------!!!")
@@ -46,18 +47,15 @@ if self_driving:
     #
     #
 
-
-
     # load model
     model = load_model('saved_model_custom_12.h5')
     # summarize model.
     model.summary()
     # end keras
-    
-  
+
     pg.init()
-  
-    screen = pg.display.set_mode((640,480))
+
+    screen = pg.display.set_mode((640, 480))
     screen_rect = screen.get_rect()
 
 parser = argparse.ArgumentParser()
@@ -70,7 +68,6 @@ parser.add_argument('--domain-rand', action='store_true', help='enable domain ra
 parser.add_argument('--frame-skip', default=1, type=int, help='number of frames to skip')
 parser.add_argument('--seed', default=1, type=int, help='seed')
 args = parser.parse_args()
-
 
 if args.env_name and args.env_name.find('Duckietown') != -1:
     env = DuckietownEnv(
@@ -115,6 +112,7 @@ def on_key_press(symbol, modifiers):
     #     img = env.render('rgb_array')
     #     save_img('screenshot.png', img)
 
+
 # Register a keyboard handler
 key_handler = key.KeyStateHandler()
 env.unwrapped.window.push_handlers(key_handler)
@@ -131,6 +129,7 @@ if self_driving:
 angle_idx = 2
 color = (0, 200, 0)
 angles_lst = []
+
 
 def update(dt):
     """
@@ -168,8 +167,6 @@ def update(dt):
         if angle_idx > 6:
             angle_idx = 6
 
-
-
     if self_driving:
         action = np.array([action[0], angles])
     else:
@@ -177,7 +174,7 @@ def update(dt):
     # action = np.add(action, np.array([0, -0.3]))
     # if key_handler[key.SPACE]:
     #     action[0] = action[0]/1.2
-        # action[1] = action[1]/1.05
+    # action[1] = action[1]/1.05
 
     # Speed boost
     # if key_handler[key.LSHIFT]:
@@ -194,14 +191,11 @@ def update(dt):
         if action[1] < -max_angle:
             action[1] = -max_angle
 
-
-
     speed = action[0]
     angle = action[1]
 
     # if speed < 0.03 and speed > -0.03:
     #     angle = 0
-    
     print("GOING WITH ANGLE:" + str(angle))
     angle = speed / max_speed * angle
     angle *= 4.5
@@ -216,16 +210,13 @@ def update(dt):
     if self_driving:
         im = Image.fromarray(obs)
         im = im.crop((0, 80, 640, 330))
-        
-
-        
 
         size = 66, 200
         im = im.resize(size, Image.ANTIALIAS)
-        
+
         draw = ImageDraw(im)
         draw.rectangle((0, 185, 66, 200), fill=color)
-        
+
         modepg = im.mode
         sizepg = im.size
         datapg = im.tobytes()
@@ -235,31 +226,28 @@ def update(dt):
         screen.blit(imagepg, image_rect)
         pg.display.update()
 
-
-
-
         img_pred = im
-        
+
         img_pred = image.img_to_array(img_pred)
         img_pred = np.expand_dims(img_pred, axis=0)
 
         rslt = model.predict(img_pred)
-        	
+
         print(rslt[0])
 
-        predicted_angles = [-0.3, -0.2, -0.1,  0.0, 0.1, 0.2, 0.3, -0.3, -0.2, -0.1,  \
-            0.0, 0.1, 0.2, 0.3, -0.3, -0.2, -0.1,  0.0, 0.1, 0.2, 0.3, -0.3, -0.2, -0.1,  0.0, 0.1, 0.2, 0.3]
+        predicted_angles = [-0.3, -0.2, -0.1, 0.0, 0.1, 0.2, 0.3, -0.3, -0.2, -0.1, 0.0, 0.1, 0.2, 0.3, -0.3, -0.2, -0.1, 0.0, 0.1, 0.2, 0.3, -0.3, -0.2, -0.1, 0.0, 0.1, 0.2,
+                            0.3]
         final_angle = 0
         for idx in range(28):
             final_angle += rslt[0][idx] * predicted_angles[idx]
-        #print('angle:' + str(final_angle))
+        # print('angle:' + str(final_angle))
         # angles = round(final_angle, 2)
         if len(angles_lst) > 2:
             angles_lst.pop(0)
         angles_lst.append(round(final_angle, 2))
-        angles = round(sum(angles_lst)/len(angles_lst), 3)
-        #print("Going with : " + str(angles))
-        #print("Cache : " + str(angles_lst))
+        angles = round(sum(angles_lst) / len(angles_lst), 3)
+        # print("Going with : " + str(angles))
+        # print("Cache : " + str(angles_lst))
 
         # for idx in range(7):
         #     if angles[idx] == final_angle:
@@ -276,8 +264,6 @@ def update(dt):
 
     if key_handler[key.LCTRL] and self_driving is False:
 
-
-
         im = Image.fromarray(obs)
 
         # !!! save image
@@ -287,37 +273,39 @@ def update(dt):
         global args
         folder_name = '0'
         if angles[angle_idx] > 0:
-            folder_name = str(round(int(angles[angle_idx]*10), 0))
+            folder_name = str(round(int(angles[angle_idx] * 10), 0))
         if angles[angle_idx] < 0:
-            folder_name = '_' + str(round(int(angles[angle_idx]*-10), 0))
+            folder_name = '_' + str(round(int(angles[angle_idx] * -10), 0))
 
         size = 360, 120
         im = im.resize(size, Image.ANTIALIAS)
         draw = ImageDraw(im)
         if color == (200, 200, 200):
-            #print('all')
-            for colo in [(0,0,200), (0,200,0), (200,0,0)]:
-                #print(colo)
-                
+            # print('all')
+            for colo in [(0, 0, 200), (0, 200, 0), (200, 0, 0)]:
+                # print(colo)
+
                 draw.rectangle((0, 115, 360, 120), fill=colo)
-                #im.show()
+                # im.show()
                 img_name = 'classifier5/{0}/{1}/{2}_{3}_{4}_{5}.png'.format('left',
-                                                                        folder_name,
-                                                                        str(round(time(), 1)),
-                                                                        str(round(env.cur_pos[0], 3)),
-                                                                        str(round(env.cur_pos[2], 3)),
-                                                                        str(int(colo[0]/200+colo[1]/100+colo[2]/66.66))
-                                                                        )
+                                                                            folder_name,
+                                                                            str(round(time(), 1)),
+                                                                            str(round(env.cur_pos[0], 3)),
+                                                                            str(round(env.cur_pos[2], 3)),
+                                                                            str(int(
+                                                                                colo[0] / 200 + colo[1] / 100 + colo[
+                                                                                    2] / 66.66))
+                                                                            )
                 im.save(img_name)
         else:
             draw.rectangle((0, 115, 360, 120), fill=color)
 
             img_name = 'classifier5/{0}/{1}/{2}_{3}_{4}.png'.format('left',
-                                                                   folder_name,
-                                                                   str(round(time(), 1)),
-                                                                   str(round(env.cur_pos[0], 3)),
-                                                                   str(round(env.cur_pos[2], 3))
-                                                                   )
+                                                                    folder_name,
+                                                                    str(round(time(), 1)),
+                                                                    str(round(env.cur_pos[0], 3)),
+                                                                    str(round(env.cur_pos[2], 3))
+                                                                    )
             im.save(img_name)
         # end save image
 
@@ -347,13 +335,13 @@ def update(dt):
         # print(prediction)
         # end keras
 
-
     if done:
         print('done!')
         env.reset()
         env.render()
 
     env.render()
+
 
 pyglet.clock.schedule_interval(update, 1.0 / env.unwrapped.frame_rate)
 
