@@ -410,7 +410,8 @@ def update(dt):
                 limit(0,4)
 
         if road_value_prev == 3 and road_value == 0: # from straight road to intersection
-            new_direction = directions_list.pop(0)
+            if len(directions_list) > 0:
+                new_direction = directions_list.pop(0)
             if new_direction == 'forward':
                 color = (0, 200, 0)
             if new_direction == 'left':
@@ -433,6 +434,10 @@ def update(dt):
             if color == (0, 200, 0):
                 cv2.putText(image, 'Going forward', (50, 80),
                                         cv2.FONT_HERSHEY_SIMPLEX, 0.7, (139, 0, 0), 2)
+
+        if len(directions_list) == 0:
+            cv2.putText(image, 'FINISH', (50, 80),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (139, 0, 0), 2)
 
         pg_im = Image.fromarray(image)
 
