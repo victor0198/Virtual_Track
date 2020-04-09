@@ -148,6 +148,14 @@ sign_value = 0
 speed_limit = 0.9
 speed_limit_time = time.time()
 
+# read directions
+rd = open ("Directions.txt", "r")
+out = rd.readlines()
+print('DIRECTIONS:')
+print(out)
+rd.close()
+#---
+
 def limit(speed, seconds):
     global speed_limit
     global speed_limit_time
@@ -172,6 +180,8 @@ def update(dt):
     global color
     global angles_lst
     global speeds_lst
+    global sign_prediction
+    global sign_prediction
     global road_value
     global sign_value
     global road_value_prev
@@ -261,6 +271,9 @@ def update(dt):
         if rv != road_value_prev:
             road_value_prev = road_value
         road_value = rv
+        if road_value == 3:
+            sign_prediction = []
+            sign_value = 0
         
         print('Road:' + str(road_value))
         speeds = [0.2, 0.4, 0.6, 0.8]
@@ -370,6 +383,8 @@ def update(dt):
                     if len(sign_prediction) > 5:
                         sign_prediction.pop(0)
                     print(sign_prediction)
+                    if len(sign_prediction) == 0:
+                        sign_prediction.append(0)
                     sign_value = max(set(sign_prediction), key = sign_prediction.count)
                     print('Sign:' + str(sign_value))
     
