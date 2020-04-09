@@ -26,14 +26,14 @@ from time import time
 import pygame as pg
 import time
 
-
 # for tensorflow detection
 import cv2
-import tflite
+# import tflite
 import zipfile
 import tensorflow as tf
+
 # tf.disable_v2_behavior()
-#---
+# ---
 
 
 # loading keras models
@@ -47,7 +47,7 @@ if self_driving:
 
     screen = pg.display.set_mode((640, 480))
     screen_rect = screen.get_rect()
-#---
+# ---
 
 # loading Tensorflow model
 print("Loading Tensorflow: sign detection model")
@@ -69,7 +69,7 @@ floating_model = (input_details[0]['dtype'] == np.float32)
 input_mean = 127.5
 input_std = 127.5
 
-#---
+# ---
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--env-name', default=None)
@@ -118,6 +118,7 @@ def on_key_press(symbol, modifiers):
         env.close()
         sys.exit(0)
 
+
 # Register a keyboard handler
 
 key_handler = key.KeyStateHandler()
@@ -152,26 +153,28 @@ in_intersection = False
 
 stop_time = 0
 stop_time_break = 0
-finish_interval = 5
+finish_interval = 10
 
 # read directions
-rd = open ("Directions.txt", "r")
+rd = open("Directions.txt", "r")
 directions_list = rd.readlines()
-directions_list = [x.strip() for x in directions_list] 
+directions_list = [x.strip() for x in directions_list]
 print('DIRECTIONS:')
 print(directions_list)
 rd.close()
-#---
 
+
+# ---
 
 
 def limit(speed, seconds):
     global speed_limit
     global speed_limit_time
-    
+
     speed_limit = speed
     # print('set speed limit', speed_limit)
-    speed_limit_time = time.time() + seconds    
+    speed_limit_time = time.time() + seconds
+
 
 def update(dt):
     """
@@ -240,7 +243,6 @@ def update(dt):
             action[1] = -max_angle
     # print(' time.time()', time.time())
     # print(' speed_limit_time',speed_limit_time)
-    
 
     speed = action[0]
     angle = action[1]
@@ -254,7 +256,7 @@ def update(dt):
 
     obs, reward, done, info = env.step(act_cmd)
     initial_img = Image.fromarray(obs)
-    
+
     if self_driving:
         im = initial_img
         im = im.crop((0, 80, 640, 330))
@@ -264,8 +266,6 @@ def update(dt):
 
         draw = ImageDraw(im)
         draw.rectangle((0, 185, 66, 200), fill=color)
-
-        
 
         img_pred = im
 
@@ -281,20 +281,20 @@ def update(dt):
         if len(road_prediction) > 20:
             road_prediction.pop(0)
         # print(road_prediction)
-        rv = max(set(road_prediction), key = road_prediction.count)
+        rv = max(set(road_prediction), key=road_prediction.count)
         if rv != road_value_prev:
             road_value_prev = road_value
         road_value = rv
         if road_value == 3:
             sign_prediction = []
             sign_value = 0
-        
+
         print('Road:' + str(road_value))
         speeds = [0.2, 0.4, 0.6, 0.8]
         gl_speed = 0
         for idx in range(4):
             gl_speed += rslt2[0][idx] * speeds[idx]
-        
+
         if speed_limit_time < time.time():
             if stop_time_break != 0 and stop_time_break < time.time():
                 print('///////////////FINISH TIME////////////////')
@@ -303,23 +303,21 @@ def update(dt):
                 speeds_lst.append(0)
                 gl_speed = round(sum(speeds_lst) / len(speeds_lst), 2)
 
-            else :
+            else:
                 if len(speeds_lst) > 6:
                     speeds_lst.pop(0)
                 speeds_lst.append(round(gl_speed, 2))
-                gl_speed = round(sum(speeds_lst) / len(speeds_lst), 2) 
+                gl_speed = round(sum(speeds_lst) / len(speeds_lst), 2)
         else:
             # print('///////////////STOP TIME////////////////')
             speeds_lst.pop(0)
             speeds_lst.append(speed_limit)
             gl_speed = round(sum(speeds_lst) / len(speeds_lst), 2)
             if gl_speed > 0:
-                limit(0,4)
-        
+                limit(0, 4)
+
         # print(speeds_lst)
-        
-        
-            
+
         print(gl_speed)
 
         predicted_angles = [-0.3, -0.2, -0.1, 0.0, 0.1, 0.2, 0.3, -0.3, -0.2, -0.1, \
@@ -336,16 +334,9 @@ def update(dt):
         angles = round(sum(angles_lst) / len(angles_lst), 3)
         # print("Going with : " + str(angles))
         # print("Cache : " + str(angles_lst))
-
         # for idx in range(7):
         #     if angles[idx] == final_angle:
         #         angle_idx = idx
-
-
-
-
-
-
 
         image_width = 600
         image_height = 400
@@ -393,37 +384,35 @@ def update(dt):
                     if 'pedestrian_cross' in label:
                         sign_prediction.append(1)
                         cv2.putText(image_np, "CROSS", (50, 50),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (139, 0, 0), 2)
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (139, 0, 0), 2)
                     if 'stop' in label:
                         sign_prediction.append(2)
                         cv2.putText(image_np, "STOP", (50, 50),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (139, 0, 0), 2)
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (139, 0, 0), 2)
                     if 'priority' in label:
                         sign_prediction.append(3)
                         cv2.putText(image_np, "SLOW DOWN", (50, 50),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (139, 0, 0), 2)
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (139, 0, 0), 2)
                     if len(sign_prediction) > 5:
                         sign_prediction.pop(0)
                     print(sign_prediction)
                     if len(sign_prediction) == 0:
                         sign_prediction.append(0)
-                    sign_value = max(set(sign_prediction), key = sign_prediction.count)
+                    sign_value = max(set(sign_prediction), key=sign_prediction.count)
                     # print('Sign:' + str(sign_value))
-    
+
         print("----------------FINISH-----------------")
 
-        
-        
         if sign_value == 2:  # stop sign
             # print('prev',road_value_prev,'current',road_value)
-            if road_value_prev == 3 and road_value == 0: # from straight road to intersection
-                limit(0,4)
+            if road_value_prev == 3 and road_value == 0:  # from straight road to intersection
+                limit(0, 4)
         if sign_value == 1:  # cross sign
             # print('prev',road_value_prev,'current',road_value)
-            if road_value_prev == 3 and road_value == 1: # from straight road to turning
-                limit(0,4)
+            if road_value_prev == 3 and road_value == 1:  # from straight road to turning
+                limit(0, 4)
 
-        if road_value_prev == 3 and road_value == 0: # from straight road to intersection
+        if road_value_prev == 3 and road_value == 0:  # from straight road to intersection
             if len(directions_list) > 0:
                 new_direction = directions_list.pop(0)
                 if new_direction == 'forward':
@@ -434,21 +423,21 @@ def update(dt):
                     color = (0, 0, 200)
                 if new_direction != 'finish':
                     in_intersection = True
-        
+
         if road_value == 3:
             color = (0, 200, 0)
             in_intersection = False
-            
+
         if in_intersection == True:
             if color == (200, 0, 0):
                 cv2.putText(image, 'Turning left', (50, 80),
-                                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (139, 0, 0), 2)
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (57, 255, 20), 2)
             if color == (0, 0, 200):
                 cv2.putText(image, 'Turning right', (50, 80),
-                                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (139, 0, 0), 2)
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (57, 255, 20), 2)
             if color == (0, 200, 0):
                 cv2.putText(image, 'Going forward', (50, 80),
-                                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (139, 0, 0), 2)
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (57, 255, 20), 2)
 
         # print('directions_list', directions_list)
         # print('stop_time', stop_time)
@@ -459,7 +448,10 @@ def update(dt):
 
         if time.time() > stop_time_break and stop_time_break != 0:
             cv2.putText(image, 'FINISH', (50, 80),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (139, 0, 0), 2)
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (139, 0, 0), 2)
+
+        cv2.putText(image, 'speed: {} km/h '.format(gl_speed * 10), (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+        cv2.putText(image, 'steering angle {}'.format(angles * (-100)), (50, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
 
         pg_im = Image.fromarray(image)
 
@@ -481,14 +473,13 @@ def update(dt):
             color = (0, 0, 200)
         if key_handler[key.S]:
             color = (200, 200, 200)
-        #---
+        # ---
 
     # save image start
     if key_handler[key.LCTRL] and self_driving is False:
         im = initial_img
         im = Image.fromarray(obs)
 
-        
         im = im.crop((0, 80, 640, 330))
 
         global args

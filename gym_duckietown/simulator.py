@@ -323,7 +323,7 @@ class Simulator(gym.Env):
         self.undistort = False
 
         # Start tile
-        self.user_tile_start = (5.2, 5.4)
+        self.user_tile_start = (4.7, 1.4)
         print(user_tile_start)
         self.randomize_maps_on_reset = randomize_maps_on_reset
 

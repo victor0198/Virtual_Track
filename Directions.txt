@@ -1,3 +1,8 @@
+left
+forward
+left
 right
+left
+forward
 forward
 finish
