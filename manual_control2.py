@@ -150,6 +150,10 @@ speed_limit_time = time.time()
 
 in_intersection = False
 
+stop_time = 0
+stop_time_break = 0
+finish_interval = 5
+
 # read directions
 rd = open ("Directions.txt", "r")
 directions_list = rd.readlines()
@@ -166,7 +170,7 @@ def limit(speed, seconds):
     global speed_limit_time
     
     speed_limit = speed
-    print('set speed limit', speed_limit)
+    # print('set speed limit', speed_limit)
     speed_limit_time = time.time() + seconds    
 
 def update(dt):
@@ -195,6 +199,8 @@ def update(dt):
     global speed_limit_time
     global directions_list
     global in_intersection
+    global stop_time
+    global stop_time_break
 
     if key_handler[key.P]:
         angles = 0
@@ -232,8 +238,8 @@ def update(dt):
             action[1] = max_angle
         if action[1] < -max_angle:
             action[1] = -max_angle
-    print(' time.time()', time.time())
-    print(' speed_limit_time',speed_limit_time)
+    # print(' time.time()', time.time())
+    # print(' speed_limit_time',speed_limit_time)
     
 
     speed = action[0]
@@ -274,7 +280,7 @@ def update(dt):
         road_prediction.append(rslt2[0].argmax())
         if len(road_prediction) > 20:
             road_prediction.pop(0)
-        print(road_prediction)
+        # print(road_prediction)
         rv = max(set(road_prediction), key = road_prediction.count)
         if rv != road_value_prev:
             road_value_prev = road_value
@@ -290,19 +296,27 @@ def update(dt):
             gl_speed += rslt2[0][idx] * speeds[idx]
         
         if speed_limit_time < time.time():
-            if len(speeds_lst) > 6:
-                speeds_lst.pop(0)
-            speeds_lst.append(round(gl_speed, 2))
-            gl_speed = round(sum(speeds_lst) / len(speeds_lst), 2)
+            if stop_time_break != 0 and stop_time_break < time.time():
+                print('///////////////FINISH TIME////////////////')
+                if len(speeds_lst) > 0:
+                    speeds_lst.pop(0)
+                speeds_lst.append(0)
+                gl_speed = round(sum(speeds_lst) / len(speeds_lst), 2)
+
+            else :
+                if len(speeds_lst) > 6:
+                    speeds_lst.pop(0)
+                speeds_lst.append(round(gl_speed, 2))
+                gl_speed = round(sum(speeds_lst) / len(speeds_lst), 2) 
         else:
-            print('///////////////STOP TIME////////////////')
+            # print('///////////////STOP TIME////////////////')
             speeds_lst.pop(0)
             speeds_lst.append(speed_limit)
             gl_speed = round(sum(speeds_lst) / len(speeds_lst), 2)
             if gl_speed > 0:
                 limit(0,4)
         
-        print(speeds_lst)
+        # print(speeds_lst)
         
         
             
@@ -375,7 +389,7 @@ def update(dt):
                 image_np = image
 
                 if apx_dist < 0.7:
-                    print(label)
+                    # print(label)
                     if 'pedestrian_cross' in label:
                         sign_prediction.append(1)
                         cv2.putText(image_np, "CROSS", (50, 50),
@@ -394,36 +408,37 @@ def update(dt):
                     if len(sign_prediction) == 0:
                         sign_prediction.append(0)
                     sign_value = max(set(sign_prediction), key = sign_prediction.count)
-                    print('Sign:' + str(sign_value))
+                    # print('Sign:' + str(sign_value))
     
         print("----------------FINISH-----------------")
 
         
         
         if sign_value == 2:  # stop sign
-            print('prev',road_value_prev,'current',road_value)
+            # print('prev',road_value_prev,'current',road_value)
             if road_value_prev == 3 and road_value == 0: # from straight road to intersection
                 limit(0,4)
         if sign_value == 1:  # cross sign
-            print('prev',road_value_prev,'current',road_value)
+            # print('prev',road_value_prev,'current',road_value)
             if road_value_prev == 3 and road_value == 1: # from straight road to turning
                 limit(0,4)
 
         if road_value_prev == 3 and road_value == 0: # from straight road to intersection
             if len(directions_list) > 0:
                 new_direction = directions_list.pop(0)
-            if new_direction == 'forward':
-                color = (0, 200, 0)
-            if new_direction == 'left':
-                color = (200, 0, 0)
-            if new_direction == 'right':
-                color = (0, 0, 200)
-            in_intersection = True
+                if new_direction == 'forward':
+                    color = (0, 200, 0)
+                if new_direction == 'left':
+                    color = (200, 0, 0)
+                if new_direction == 'right':
+                    color = (0, 0, 200)
+                if new_direction != 'finish':
+                    in_intersection = True
         
         if road_value == 3:
             color = (0, 200, 0)
             in_intersection = False
-
+            
         if in_intersection == True:
             if color == (200, 0, 0):
                 cv2.putText(image, 'Turning left', (50, 80),
@@ -435,7 +450,14 @@ def update(dt):
                 cv2.putText(image, 'Going forward', (50, 80),
                                         cv2.FONT_HERSHEY_SIMPLEX, 0.7, (139, 0, 0), 2)
 
-        if len(directions_list) == 0:
+        # print('directions_list', directions_list)
+        # print('stop_time', stop_time)
+        # print('stop_time_break', stop_time_break)
+        if directions_list == ['finish'] and stop_time == 0 and road_value == 3:
+            stop_time = time.time()
+            stop_time_break = time.time() + finish_interval
+
+        if time.time() > stop_time_break and stop_time_break != 0:
             cv2.putText(image, 'FINISH', (50, 80),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (139, 0, 0), 2)
 
