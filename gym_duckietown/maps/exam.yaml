@@ -20,7 +20,7 @@ objects:
   height: 0.2
 
 - kind: sign_pedestrian
-  pos: [1.25, 3]
+  pos: [1.25, 2.9]
   rotate: 90
   height: 0.2
 

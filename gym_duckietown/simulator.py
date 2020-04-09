@@ -37,10 +37,7 @@ import os
 import six.moves.urllib as urllib
 import sys
 import tarfile
-import tensorflow as tf
-import tflite
 import zipfile
-import tensorflow as tf
 # tf.disable_v2_behavior()
 
 from distutils.version import StrictVersion
@@ -56,40 +53,6 @@ from gym_duckietown.object_detection.utils import ops as utils_ops
 from gym_duckietown.object_detection.utils import label_map_util
 
 from gym_duckietown.object_detection.utils import visualization_utils as vis_util
-
-MODEL_NAME = 'gym_duckietown/object_detection/inference_graph1'
-PATH_TO_FROZEN_GRAPH = MODEL_NAME + '/detect.tflite'
-PATH_TO_LABELS = 'gym_duckietown/object_detection/inference_graph1/labelmap.pbtxt'
-
-print(os.getcwd())
-
-with open(PATH_TO_LABELS, 'r') as f:
-    labels = [line.strip() for line in f.readlines()]
-
-interpreter = tf.lite.Interpreter(model_path=PATH_TO_FROZEN_GRAPH)
-interpreter.allocate_tensors()
-
-input_details = interpreter.get_input_details()
-output_details = interpreter.get_output_details()
-img_height = input_details[0]['shape'][1]
-img_width = input_details[0]['shape'][2]
-floating_model = (input_details[0]['dtype'] == np.float32)
-input_mean = 127.5
-input_std = 127.5
-
-# detection_graph = tf.Graph()
-# with detection_graph.as_default():
-#     od_graph_def = tf.compat.v1.GraphDef()
-#     with tf.io.gfile.GFile(PATH_TO_FROZEN_GRAPH, 'rb') as fid:
-#         serialized_graph = fid.read()
-#         od_graph_def.ParseFromString(serialized_graph)
-#         tf.import_graph_def(od_graph_def, name='')
-#
-# category_index = label_map_util.create_category_index_from_labelmap(PATH_TO_LABELS, use_display_name=True)
-
-
-
-# end tensorflow detection
 
 # Rendering window size
 WINDOW_WIDTH = 800
@@ -360,7 +323,7 @@ class Simulator(gym.Env):
         self.undistort = False
 
         # Start tile
-        self.user_tile_start = (4.7, 1.4)
+        self.user_tile_start = (5.2, 5.4)
         print(user_tile_start)
         self.randomize_maps_on_reset = randomize_maps_on_reset
 
@@ -1697,60 +1660,7 @@ class Simulator(gym.Env):
         # properly, otherwise they are vertically inverted.
         img_array = np.ascontiguousarray(np.flip(img_array, axis=0))
 
-        image_width = 600
-        image_height = 400
-
         image_np = img_array
-
-        if type == 'human' and step > 100:
-            print("----------------START-----------------")
-
-            image = img_array
-            imH, imW, _ = image.shape
-            image_resized = cv2.resize(image, (img_width, img_height))
-            input_data = np.expand_dims(image_resized, axis=0)
-            if floating_model:
-                input_data = (np.float32(input_data) - input_mean) / input_std
-
-            interpreter.set_tensor(input_details[0]['index'], input_data)
-            interpreter.invoke()
-
-            boxes = interpreter.get_tensor(output_details[0]['index'])[0]
-            classes = interpreter.get_tensor(output_details[1]['index'])[0]
-            scores = interpreter.get_tensor(output_details[2]['index'])[0]
-
-            for i, b in enumerate(boxes):
-                if scores[i] >= 0.5:
-                    apx_dist = (0.2 * 3.04) / boxes[i][1]
-
-            for i in range(len(scores)):
-                if (scores[i] >= 0.7) and (scores[i] <= 1.0):
-                    ymin = int(max(1, boxes[i][0] * imH))
-                    xmin = int(max(1, boxes[i][1] * imW))
-                    ymax = int(min(imH, (boxes[i][2] * imH)))
-                    xmax = int(min(imW, (boxes[i][3]) * imW))
-
-                    cv2.rectangle(image, (xmin, ymin), (xmax, ymax), (10, 255, 0), 2)
-
-                    object_name = labels[int(classes[i])]
-                    label = '%s: %d%%' % (object_name, int(scores[i] * 100))
-                    labelsize, baseline = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)
-                    label_ymin = max(ymin, labelsize[1] + 10)
-                    cv2.rectangle(image, (xmin, label_ymin - labelsize[1] - 10),
-                                  (xmin + labelsize[0], label_ymin + baseline - 10), (255, 255, 255), cv2.FILLED)
-                    cv2.putText(image, label, (xmin, label_ymin - 7), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
-                    image_np = image
-
-                    if apx_dist < 0.7:
-                        print(label)
-                        if 'stop' in label or 'pedestrian_cross' in label:
-                            cv2.putText(image_np, "STOP", (50, 50),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (139, 0, 0), 2)
-                        if 'priority' in label:
-                            cv2.putText(image_np, "SLOW DOWN", (50, 50),
-                                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (139, 0, 0), 2)
-
-            print("----------------FINISH-----------------")
 
         image_np = self.draw_car(image_np)
         image_np = self.draw_front_sensor(image_np)

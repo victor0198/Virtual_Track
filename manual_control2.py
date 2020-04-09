@@ -19,48 +19,57 @@ from gym_duckietown.envs import DuckietownEnv
 from gym_duckietown.wrappers import UndistortWrapper
 
 # from experiments.utils import save_img
-from gym_duckietown.simulator import apx_dist
-from tensorflow.keras.preprocessing import image
+from tensorflow.keras.preprocessing import image as image_keras_preprocessing
 from PIL import Image
 from tensorflow.keras.models import load_model
 from time import time
 import pygame as pg
+import time
 
-# keras model
+
+# for tensorflow detection
+import cv2
+import tflite
+import zipfile
+import tensorflow as tf
+# tf.disable_v2_behavior()
+#---
+
+
+# loading keras models
 if self_driving:
-    print("!!!------ LOADING Keras ------!!!")
-    #
-    # import tensorflow.keras
-    # from PIL import Image, ImageOps
-    # import numpy as np
-    #
-    # # Disable scientific notation for clarity
-    # np.set_printoptions(suppress=True)
-    #
-    # # Load the model
-    # model = tensorflow.keras.models.load_model('keras_model0.h5')
-    #
-    # # Create the array of the right shape to feed into the keras model
-    # # The 'length' or number of images you can put into the array is
-    # # determined by the first position in the shape tuple, in this case 1.
-    # data = np.ndarray(shape=(1, 224, 224, 3), dtype=np.float32)
-    #
-    #
-
-    # load model
+    print("Loading Keras: steering model")
     model = load_model('saved_model_custom_12.h5')
-    # summarize model.
-    model.summary()
-    # load model
+    print("Loading Keras: speed model")
     model2 = load_model('saved_model_road_1.h5')
-    # summarize model.
-    model2.summary()
-    # end keras
 
     pg.init()
 
     screen = pg.display.set_mode((640, 480))
     screen_rect = screen.get_rect()
+#---
+
+# loading Tensorflow model
+print("Loading Tensorflow: sign detection model")
+MODEL_NAME = 'gym_duckietown/object_detection/inference_graph1'
+PATH_TO_FROZEN_GRAPH = MODEL_NAME + '/detect.tflite'
+PATH_TO_LABELS = 'gym_duckietown/object_detection/inference_graph1/labelmap.pbtxt'
+
+with open(PATH_TO_LABELS, 'r') as f:
+    labels = [line.strip() for line in f.readlines()]
+
+interpreter = tf.lite.Interpreter(model_path=PATH_TO_FROZEN_GRAPH)
+interpreter.allocate_tensors()
+
+input_details = interpreter.get_input_details()
+output_details = interpreter.get_output_details()
+img_height = input_details[0]['shape'][1]
+img_width = input_details[0]['shape'][2]
+floating_model = (input_details[0]['dtype'] == np.float32)
+input_mean = 127.5
+input_std = 127.5
+
+#---
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--env-name', default=None)
@@ -109,14 +118,6 @@ def on_key_press(symbol, modifiers):
         env.close()
         sys.exit(0)
 
-    # Take a screenshot
-    # UNCOMMENT IF NEEDED - Skimage dependency
-    # elif symbol == key.RETURN:
-    #     print('saving screenshot')
-    #     img = env.render('rgb_array')
-    #     save_img('screenshot.png', img)
-
-
 # Register a keyboard handler
 
 key_handler = key.KeyStateHandler()
@@ -138,6 +139,22 @@ speeds_lst = []
 speed_folder = '2'
 gl_speed = 0
 
+sign_prediction = []
+road_prediction = []
+road_value = 3
+road_value_prev = 3
+sign_value = 0
+
+speed_limit = 0.9
+speed_limit_time = time.time()
+
+def limit(speed, seconds):
+    global speed_limit
+    global speed_limit_time
+    
+    speed_limit = speed
+    print('set speed limit', speed_limit)
+    speed_limit_time = time.time() + seconds    
 
 def update(dt):
     """
@@ -152,8 +169,15 @@ def update(dt):
     global angles
     global self_driving
     global gl_speed
+    global color
+    global angles_lst
+    global speeds_lst
+    global road_value
+    global sign_value
+    global road_value_prev
+    global speed_limit
+    global speed_limit_time
 
-    # print("ACTION:" + str(action))
     if key_handler[key.P]:
         angles = 0
         self_driving = True
@@ -164,13 +188,12 @@ def update(dt):
         action = np.add(action, np.array([0.05, 0]))
     if key_handler[key.DOWN]:
         action = np.add(action, np.array([-0.05, 0]))
+
     if not self_driving:
         if key_handler[key.LEFT]:
             angle_idx += 1
-            # action = np.add(action, np.array([0, 0.3]))
         if key_handler[key.RIGHT]:
             angle_idx -= 1
-
         if angle_idx < 0:
             angle_idx = 0
         if angle_idx > 6:
@@ -180,14 +203,6 @@ def update(dt):
         action = np.array([action[0], angles])
     else:
         action = np.array([action[0], angles[angle_idx]])
-    # action = np.add(action, np.array([0, -0.3]))
-    # if key_handler[key.SPACE]:
-    #     action[0] = action[0]/1.2
-    # action[1] = action[1]/1.05
-
-    # Speed boost
-    # if key_handler[key.LSHIFT]:
-    #     action *= 1.2
 
     if action[0] > max_speed:
         action[0] = max_speed
@@ -199,28 +214,25 @@ def update(dt):
             action[1] = max_angle
         if action[1] < -max_angle:
             action[1] = -max_angle
+    print(' time.time()', time.time())
+    print(' speed_limit_time',speed_limit_time)
+    
 
     speed = action[0]
     angle = action[1]
     if self_driving:
         speed = gl_speed
-    # if speed < 0.03 and speed > -0.03:
-    #     angle = 0
 
-    # print("GOING WITH ANGLE:" + str(angle))
     angle = speed / max_speed * angle
     angle *= 4.5
 
     act_cmd = np.array([round(speed, 4), round(angle, 4)])
 
     obs, reward, done, info = env.step(act_cmd)
-    # print('step_count = %s, reward=%.3f' % (env.unwrapped.step_count, reward))
-
-    global color
-    global angles_lst
-    global speeds_lst
+    initial_img = Image.fromarray(obs)
+    
     if self_driving:
-        im = Image.fromarray(obs)
+        im = initial_img
         im = im.crop((0, 80, 640, 330))
 
         size = 66, 200
@@ -229,33 +241,50 @@ def update(dt):
         draw = ImageDraw(im)
         draw.rectangle((0, 185, 66, 200), fill=color)
 
-        modepg = im.mode
-        sizepg = im.size
-        datapg = im.tobytes()
-
-        imagepg = pg.image.fromstring(datapg, sizepg, modepg)
-        image_rect = imagepg.get_rect(center=screen.get_rect().center)
-        screen.blit(imagepg, image_rect)
-        pg.display.update()
+        
 
         img_pred = im
 
-        img_pred = image.img_to_array(img_pred)
+        img_pred = image_keras_preprocessing.img_to_array(img_pred)
         img_pred = np.expand_dims(img_pred, axis=0)
 
         rslt = model.predict(img_pred)
         # print(rslt[0])
+        speed = speed_limit
         rslt2 = model2.predict(img_pred)
-        print(rslt2[0])
+        # print(rslt2[0])
+        road_prediction.append(rslt2[0].argmax())
+        if len(road_prediction) > 20:
+            road_prediction.pop(0)
+        print(road_prediction)
+        rv = max(set(road_prediction), key = road_prediction.count)
+        if rv != road_value_prev:
+            road_value_prev = road_value
+        road_value = rv
+        
+        print('Road:' + str(road_value))
         speeds = [0.2, 0.4, 0.6, 0.8]
         gl_speed = 0
         for idx in range(4):
             gl_speed += rslt2[0][idx] * speeds[idx]
-
-        if len(speeds_lst) > 6:
+        
+        if speed_limit_time < time.time():
+            if len(speeds_lst) > 6:
+                speeds_lst.pop(0)
+            speeds_lst.append(round(gl_speed, 2))
+            gl_speed = round(sum(speeds_lst) / len(speeds_lst), 2)
+        else:
+            print('///////////////STOP TIME////////////////')
             speeds_lst.pop(0)
-        speeds_lst.append(round(gl_speed, 2))
-        gl_speed = round(sum(speeds_lst) / len(speeds_lst), 3)
+            speeds_lst.append(speed_limit)
+            gl_speed = round(sum(speeds_lst) / len(speeds_lst), 2)
+            if gl_speed > 0:
+                limit(0,4)
+        
+        print(speeds_lst)
+        
+        
+            
         print(gl_speed)
 
         predicted_angles = [-0.3, -0.2, -0.1, 0.0, 0.1, 0.2, 0.3, -0.3, -0.2, -0.1, \
@@ -277,23 +306,116 @@ def update(dt):
         #     if angles[idx] == final_angle:
         #         angle_idx = idx
 
+
+
+
+
+
+
+        image_width = 600
+        image_height = 400
+
+        print("----------------START-----------------")
+
+        image = np.array(initial_img)
+        imH, imW, _ = image.shape
+        image_resized = cv2.resize(image, (img_width, img_height))
+        input_data = np.expand_dims(image_resized, axis=0)
+        if floating_model:
+            input_data = (np.float32(input_data) - input_mean) / input_std
+
+        interpreter.set_tensor(input_details[0]['index'], input_data)
+        interpreter.invoke()
+
+        boxes = interpreter.get_tensor(output_details[0]['index'])[0]
+        classes = interpreter.get_tensor(output_details[1]['index'])[0]
+        scores = interpreter.get_tensor(output_details[2]['index'])[0]
+
+        for i, b in enumerate(boxes):
+            if scores[i] >= 0.5:
+                apx_dist = (0.2 * 3.04) / boxes[i][1]
+
+        for i in range(len(scores)):
+            if (scores[i] >= 0.7) and (scores[i] <= 1.0):
+                ymin = int(max(1, boxes[i][0] * imH))
+                xmin = int(max(1, boxes[i][1] * imW))
+                ymax = int(min(imH, (boxes[i][2] * imH)))
+                xmax = int(min(imW, (boxes[i][3]) * imW))
+
+                cv2.rectangle(image, (xmin, ymin), (xmax, ymax), (10, 255, 0), 2)
+
+                object_name = labels[int(classes[i])]
+                label = '%s: %d%%' % (object_name, int(scores[i] * 100))
+                labelsize, baseline = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)
+                label_ymin = max(ymin, labelsize[1] + 10)
+                cv2.rectangle(image, (xmin, label_ymin - labelsize[1] - 10),
+                              (xmin + labelsize[0], label_ymin + baseline - 10), (255, 255, 255), cv2.FILLED)
+                cv2.putText(image, label, (xmin, label_ymin - 7), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
+                image_np = image
+
+                if apx_dist < 0.7:
+                    print(label)
+                    if 'pedestrian_cross' in label:
+                        sign_prediction.append(1)
+                        cv2.putText(image_np, "CROSS", (50, 50),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (139, 0, 0), 2)
+                    if 'stop' in label:
+                        sign_prediction.append(2)
+                        cv2.putText(image_np, "STOP", (50, 50),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (139, 0, 0), 2)
+                    if 'priority' in label:
+                        sign_prediction.append(3)
+                        cv2.putText(image_np, "SLOW DOWN", (50, 50),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (139, 0, 0), 2)
+                    if len(sign_prediction) > 5:
+                        sign_prediction.pop(0)
+                    print(sign_prediction)
+                    sign_value = max(set(sign_prediction), key = sign_prediction.count)
+                    print('Sign:' + str(sign_value))
+    
+        print("----------------FINISH-----------------")
+        
+
+        pg_im = Image.fromarray(image)
+
+        modepg = pg_im.mode
+        sizepg = pg_im.size
+        datapg = pg_im.tobytes()
+
+        imagepg = pg.image.fromstring(datapg, sizepg, modepg)
+        image_rect = imagepg.get_rect(center=screen.get_rect().center)
+        screen.blit(imagepg, image_rect)
+        pg.display.update()
+        
+        if sign_value == 2:  # stop sign
+            print('prev',road_value_prev,'current',road_value)
+            if road_value_prev == 3 and road_value == 0: # from straight road to intersection
+                limit(0,4)
+        if sign_value == 1:  # cross sign
+            print('prev',road_value_prev,'current',road_value)
+            if road_value_prev == 3 and road_value == 1: # from straight road to turning
+                limit(0,4)
+
+
     global speed_folder
 
+    # get directions
+    if key_handler[key.W]:
+        color = (0, 200, 0)
     if key_handler[key.A]:
-        speed_folder = '4'
-    if key_handler[key.S]:
-        speed_folder = '8'
+        color = (200, 0, 0)
     if key_handler[key.D]:
-        speed_folder = '2'
-    if key_handler[key.F]:
-        speed_folder = '6'
+        color = (0, 0, 200)
+    if key_handler[key.S]:
+        color = (200, 200, 200)
+    #---
 
+    # save image start
     if key_handler[key.LCTRL] and self_driving is False:
-
+        im = initial_img
         im = Image.fromarray(obs)
 
-        # !!! save image
-        # # print(im.size)
+        
         im = im.crop((0, 80, 640, 330))
 
         global args
@@ -312,33 +434,7 @@ def update(dt):
                                                                 str(round(env.cur_pos[2], 3))
                                                                 )
         im.save(img_name)
-        # end save image
-
-        # !!! keras prediction
-        # Replace this with the path to your image
-        # image = im # Image.open('test_photo.jpg')
-        #
-        # # resize the image to a 224x224 with the same strategy as in TM2:
-        # # resizing the image to be at least 224x224 and then cropping from the center
-        # size = (224, 224)
-        # image = ImageOps.fit(image, size, Image.ANTIALIAS)
-        #
-        # # turn the image into a numpy array
-        # image_array = np.asarray(image)
-        #
-        # # display the resized image
-        # # image.show()
-        #
-        # # Normalize the image
-        # normalized_image_array = (image_array.astype(np.float32) / 127.0) - 1
-        #
-        # # Load the image into the array
-        # data[0] = normalized_image_array
-        #
-        # # run the inference
-        # prediction = model.predict(data)
-        # print(prediction)
-        # end keras
+    # ---
 
     if done:
         print('done!')
