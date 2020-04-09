@@ -148,13 +148,18 @@ sign_value = 0
 speed_limit = 0.9
 speed_limit_time = time.time()
 
+in_intersection = False
+
 # read directions
 rd = open ("Directions.txt", "r")
-out = rd.readlines()
+directions_list = rd.readlines()
+directions_list = [x.strip() for x in directions_list] 
 print('DIRECTIONS:')
-print(out)
+print(directions_list)
 rd.close()
 #---
+
+
 
 def limit(speed, seconds):
     global speed_limit
@@ -176,6 +181,7 @@ def update(dt):
     global angle_idx
     global angles
     global self_driving
+    global speed_folder
     global gl_speed
     global color
     global angles_lst
@@ -187,6 +193,8 @@ def update(dt):
     global road_value_prev
     global speed_limit
     global speed_limit_time
+    global directions_list
+    global in_intersection
 
     if key_handler[key.P]:
         angles = 0
@@ -389,7 +397,42 @@ def update(dt):
                     print('Sign:' + str(sign_value))
     
         print("----------------FINISH-----------------")
+
         
+        
+        if sign_value == 2:  # stop sign
+            print('prev',road_value_prev,'current',road_value)
+            if road_value_prev == 3 and road_value == 0: # from straight road to intersection
+                limit(0,4)
+        if sign_value == 1:  # cross sign
+            print('prev',road_value_prev,'current',road_value)
+            if road_value_prev == 3 and road_value == 1: # from straight road to turning
+                limit(0,4)
+
+        if road_value_prev == 3 and road_value == 0: # from straight road to intersection
+            new_direction = directions_list.pop(0)
+            if new_direction == 'forward':
+                color = (0, 200, 0)
+            if new_direction == 'left':
+                color = (200, 0, 0)
+            if new_direction == 'right':
+                color = (0, 0, 200)
+            in_intersection = True
+        
+        if road_value == 3:
+            color = (0, 200, 0)
+            in_intersection = False
+
+        if in_intersection == True:
+            if color == (200, 0, 0):
+                cv2.putText(image, 'Turning left', (50, 80),
+                                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (139, 0, 0), 2)
+            if color == (0, 0, 200):
+                cv2.putText(image, 'Turning right', (50, 80),
+                                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (139, 0, 0), 2)
+            if color == (0, 200, 0):
+                cv2.putText(image, 'Going forward', (50, 80),
+                                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (139, 0, 0), 2)
 
         pg_im = Image.fromarray(image)
 
@@ -401,29 +444,17 @@ def update(dt):
         image_rect = imagepg.get_rect(center=screen.get_rect().center)
         screen.blit(imagepg, image_rect)
         pg.display.update()
-        
-        if sign_value == 2:  # stop sign
-            print('prev',road_value_prev,'current',road_value)
-            if road_value_prev == 3 and road_value == 0: # from straight road to intersection
-                limit(0,4)
-        if sign_value == 1:  # cross sign
-            print('prev',road_value_prev,'current',road_value)
-            if road_value_prev == 3 and road_value == 1: # from straight road to turning
-                limit(0,4)
 
-
-    global speed_folder
-
-    # get directions
-    if key_handler[key.W]:
-        color = (0, 200, 0)
-    if key_handler[key.A]:
-        color = (200, 0, 0)
-    if key_handler[key.D]:
-        color = (0, 0, 200)
-    if key_handler[key.S]:
-        color = (200, 200, 200)
-    #---
+        # get directions
+        if key_handler[key.W]:
+            color = (0, 200, 0)
+        if key_handler[key.A]:
+            color = (200, 0, 0)
+        if key_handler[key.D]:
+            color = (0, 0, 200)
+        if key_handler[key.S]:
+            color = (200, 200, 200)
+        #---
 
     # save image start
     if key_handler[key.LCTRL] and self_driving is False:
