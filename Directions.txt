@@ -1,6 +1,6 @@
 left
 forward
-left
+right
 right
 left
 forward

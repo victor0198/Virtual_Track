@@ -22,9 +22,8 @@ from gym_duckietown.wrappers import UndistortWrapper
 from tensorflow.keras.preprocessing import image as image_keras_preprocessing
 from PIL import Image
 from tensorflow.keras.models import load_model
-from time import time
-import pygame as pg
 import time
+import pygame as pg
 
 # for tensorflow detection
 import cv2
@@ -93,6 +92,7 @@ if args.env_name and args.env_name.find('Duckietown') != -1:
         distortion=args.distortion,
         user_tile_start=(1.7, 1.6),
         accept_start_angle_deg=360,
+        # folder_map='perlin_asphalt/'
     )
 else:
     env = gym.make(args.env_name)
@@ -137,8 +137,9 @@ angle_idx = 2
 color = (0, 200, 0)
 angles_lst = []
 speeds_lst = []
-speed_folder = '2'
+speed_folder = 'phase1'
 gl_speed = 0
+lines_angle = [0,0,0]
 
 sign_prediction = []
 road_prediction = []
@@ -204,6 +205,7 @@ def update(dt):
     global in_intersection
     global stop_time
     global stop_time_break
+    global lines_angle
 
     if key_handler[key.P]:
         angles = 0
@@ -253,7 +255,7 @@ def update(dt):
     angle *= 4.5
 
     act_cmd = np.array([round(speed, 4), round(angle, 4)])
-
+    # print("act_cmd::::", act_cmd)
     obs, reward, done, info = env.step(act_cmd)
     initial_img = Image.fromarray(obs)
 
@@ -268,15 +270,32 @@ def update(dt):
         draw.rectangle((0, 185, 66, 200), fill=color)
 
         img_pred = im
-
         img_pred = image_keras_preprocessing.img_to_array(img_pred)
         img_pred = np.expand_dims(img_pred, axis=0)
 
+        #......
+        # img_pred_steer = initial_img.crop(((90, 90, 550, 390))).resize((110, 140), Image.ANTIALIAS)
+        # draw_steer = ImageDraw(img_pred_steer)
+        # draw_steer.rectangle((0, 133, 110, 140), fill=color)
+        #
+        print(color)
+        # #if color == (200, 200, 0):
+        # im.save(str(time.time()) + ".png")
+        #
+        # img_pred_steer = image_keras_preprocessing.img_to_array(img_pred_steer)
+        # img_pred_steer = np.expand_dims(img_pred_steer, axis=0)
+
         rslt = model.predict(img_pred)
-        # print(rslt[0])
+
+
+        # rslt = model.predict(img_pred_steer)
+        #print("---")
+        #print("rslt")
+        #print(rslt)
         speed = speed_limit
-        rslt2 = model2.predict(img_pred)
-        # print(rslt2[0])
+        rslt2 = model2.predict(img_pred/255)
+        print("rslt2")
+        print(rslt2)
         road_prediction.append(rslt2[0].argmax())
         if len(road_prediction) > 20:
             road_prediction.pop(0)
@@ -289,12 +308,12 @@ def update(dt):
             sign_prediction = []
             sign_value = 0
 
-        print('Road:' + str(road_value))
+        # print('Road:' + str(road_value))
         speeds = [0.2, 0.4, 0.6, 0.8]
         gl_speed = 0
         for idx in range(4):
             gl_speed += rslt2[0][idx] * speeds[idx]
-
+        # print(speeds_lst) !!
         if speed_limit_time < time.time():
             if stop_time_break != 0 and stop_time_break < time.time():
                 print('///////////////FINISH TIME////////////////')
@@ -318,13 +337,15 @@ def update(dt):
 
         # print(speeds_lst)
 
-        print(gl_speed)
+        # print(gl_speed)
 
-        predicted_angles = [-0.3, -0.2, -0.1, 0.0, 0.1, 0.2, 0.3, -0.3, -0.2, -0.1, \
+        predicted_angles = [-0.3, -0.2, -0.1, 0.0, 0.1, 0.2, 0.3, -0.3, -0.2, -0.1,
                             0.0, 0.1, 0.2, 0.3, -0.3, -0.2, -0.1, 0.0, 0.1, 0.2, 0.3, -0.3, -0.2, -0.1, 0.0, 0.1, 0.2,
-                            0.3]
+                            0.3, 0.3, -0.3, 0, -0.3, 0.3]
+        # predicted_angles = [0.3, 0.1, 0.0, -0.1, -0.3, 0.3, 0.1, 0.0, -0.1, -0.3,]
         final_angle = 0
-        for idx in range(28):
+        print(rslt[0])
+        for idx in range(28):#range(28):
             final_angle += rslt[0][idx] * predicted_angles[idx]
         # print('angle:' + str(final_angle))
         # angles = round(final_angle, 2)
@@ -332,6 +353,7 @@ def update(dt):
             angles_lst.pop(0)
         angles_lst.append(round(final_angle, 2))
         angles = round(sum(angles_lst) / len(angles_lst), 3)
+        print('angle:' + str(angles))
         # print("Going with : " + str(angles))
         # print("Cache : " + str(angles_lst))
         # for idx in range(7):
@@ -341,7 +363,7 @@ def update(dt):
         image_width = 600
         image_height = 400
 
-        print("----------------START-----------------")
+        #print("----------------START-----------------")
 
         image = np.array(initial_img)
         imH, imW, _ = image.shape
@@ -351,7 +373,7 @@ def update(dt):
             input_data = (np.float32(input_data) - input_mean) / input_std
 
         interpreter.set_tensor(input_details[0]['index'], input_data)
-        interpreter.invoke()
+        # interpreter.invoke()
 
         boxes = interpreter.get_tensor(output_details[0]['index'])[0]
         classes = interpreter.get_tensor(output_details[1]['index'])[0]
@@ -401,7 +423,7 @@ def update(dt):
                     sign_value = max(set(sign_prediction), key=sign_prediction.count)
                     # print('Sign:' + str(sign_value))
 
-        print("----------------FINISH-----------------")
+        #print("----------------FINISH-----------------")
 
         if sign_value == 2:  # stop sign
             # print('prev',road_value_prev,'current',road_value)
@@ -452,13 +474,48 @@ def update(dt):
 
         cv2.putText(image, 'speed: {} km/h '.format(gl_speed * 10), (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
         cv2.putText(image, 'steering angle {}'.format(angles * (-100)), (50, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+        lines_angle.append(angles)
+        lines_angle.pop(0)
+        print(lines_angle)
+        for y in range(480, 250, -20):
+            x = 480 - y
+            a = (sum(lines_angle) / 3) / 50
+            xt = a*x*x
+            x11 = 700-xt-x*0.9
+            x21 = -60-xt+x*0.9
+            x = 480-y-20
+            xt = a*x*x
+            x12 = 700-xt-x*0.9
+            x22 = -60-xt+x*0.9
+            cv2.line(image, (int(x11), y), (int(x12), y + 20), (80, 80, 200), 15)
+            cv2.line(image, (int(x21), y), (int(x22), y + 20), (80, 80, 200), 15)
+        # pg_im = np.copy(image)
+        # print(pg_im[10][10])
+        # print(pg_im.size)
+        # print(pg_im.shape)
+        # print("---")
+        # print(pg_im[10][10])
+        # print((pg_im[10][10] + 10))
+        # print([pg_im[10][10][0], pg_im[10][10][0]+150])
+        # print(pg_im[10][10][0]+150 if pg_im[10][10][0]+150<255 else 255)
+        # print((pg_im[10][10][0]+10)%255)
 
+        # for column in range(100,540):
+        #     for row in range(60, 300):
+        #         a=pg_im[row][column][0]+180-row*0.6
+        #         b=pg_im[row][column][1]+180-row*0.6
+        #         c=pg_im[row][column][2]+180-row*0.6
+        #         pg_im[row][column] = [a if a < 255 else 255,
+        #                               b if b < 255 else 255,
+        #                               c if c < 255 else 255]
+        # pg_im = image.copy()
+        # cv2.ellipse(pg_im,(320,550),(340,340),180,0,70,(30,30,100),thickness=3)
         pg_im = Image.fromarray(image)
+
 
         modepg = pg_im.mode
         sizepg = pg_im.size
         datapg = pg_im.tobytes()
-
         imagepg = pg.image.fromstring(datapg, sizepg, modepg)
         image_rect = imagepg.get_rect(center=screen.get_rect().center)
         screen.blit(imagepg, image_rect)
@@ -473,6 +530,12 @@ def update(dt):
             color = (0, 0, 200)
         if key_handler[key.S]:
             color = (200, 200, 200)
+        if key_handler[key.G]:
+            color = (0, 199, 0)
+        if key_handler[key.T]:
+            color = (200, 0, 0)
+        if key_handler[key.Y]:
+            color = (0, 0, 200)
         # ---
 
     # save image start
@@ -480,7 +543,7 @@ def update(dt):
         im = initial_img
         im = Image.fromarray(obs)
 
-        im = im.crop((0, 80, 640, 330))
+        im = im.crop((90, 100, 550, 400))
 
         global args
         folder_name = '0'
@@ -489,13 +552,13 @@ def update(dt):
         if angles[angle_idx] < 0:
             folder_name = '_' + str(round(int(angles[angle_idx] * -10), 0))
 
-        size = 360, 120
+        size = 140, 110
         im = im.resize(size, Image.ANTIALIAS)
-
-        img_name = 'classifier_road/{0}/{1}_{2}_{3}.png'.format(speed_folder,
-                                                                str(round(time(), 1)),
-                                                                str(round(env.cur_pos[0], 3)),
-                                                                str(round(env.cur_pos[2], 3))
+        speed_folder="phase3"
+        img_name = 'overtaking/{0}/{1}/{2}_{3}_{4}.png'.format(speed_folder,
+                                                                "x",
+                                                                str(angles[angle_idx]), str(round(time.time(), 1)),
+                                                                str(round(env.cur_pos[2], 1)) + str(round(env.cur_pos[0], 1))
                                                                 )
         im.save(img_name)
     # ---

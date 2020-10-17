@@ -54,10 +54,6 @@ from gym_duckietown.object_detection.utils import label_map_util
 
 from gym_duckietown.object_detection.utils import visualization_utils as vis_util
 
-# Rendering window size
-WINDOW_WIDTH = 800
-WINDOW_HEIGHT = 600
-
 # Camera image size
 DEFAULT_CAMERA_WIDTH = 640
 DEFAULT_CAMERA_HEIGHT = 480
@@ -67,20 +63,24 @@ BLUE_SKY_COLOR = np.array([0.45, 0.82, 1])
 
 # Color meant to approximate interior walls
 WALL_COLOR = np.array([0.64, 0.71, 0.28])
+# Rendering window size
+WINDOW_WIDTH = 800
+WINDOW_HEIGHT = 600
+
 
 # Ground/floor color
 GROUND_COLOR = np.array([0.15, 0.15, 0.15])
 
 # Angle at which the camera is pitched downwards
-CAMERA_ANGLE = 20
+CAMERA_ANGLE = 20#20
 
 # Camera field of view angle in the Y direction
 # Note: robot uses Raspberri Pi camera module V2.1
 # https://www.raspberrypi.org/documentation/hardware/camera/README.md
-CAMERA_FOV_Y = 49
+CAMERA_FOV_Y = 49#49
 
 # Distance from camera to floor (20cm)
-CAMERA_FLOOR_DIST = 0.18
+CAMERA_FLOOR_DIST = 0.18#0.28
 
 # Forward distance between the camera (at the front)
 # and the center of rotation
@@ -136,6 +136,8 @@ LanePosition0 = namedtuple('LanePosition', 'dist dot_dir angle_deg angle_rad')
 
 covered_front_zones = 0
 covered_rear_zones = 0
+
+MAP_FOLDER = 'perlin_asphalt/'
 
 
 class LanePosition(LanePosition0):
@@ -206,6 +208,9 @@ class Simulator(gym.Env):
         :param seed:
         :param distortion: If true, distorts the image with fish-eye approximation
         :param randomize_maps_on_reset: If true, randomizes the map on reset (Slows down training)
+
+        random useful text here, written by me, which should be deleted soon.
+        
         """
         # first initialize the RNG
         self.seed_value = seed
@@ -323,7 +328,7 @@ class Simulator(gym.Env):
         self.undistort = False
 
         # Start tile
-        self.user_tile_start = (4.7, 1.4)
+        self.user_tile_start = (2.7, 1.6)
         print(user_tile_start)
         self.randomize_maps_on_reset = randomize_maps_on_reset
 
@@ -603,8 +608,12 @@ class Simulator(gym.Env):
                     orient = orient.strip(' ')
                     angle = ['S', 'E', 'N', 'W'].index(orient)
                     drivable = True
-                elif '4' in tile:
+                elif '4way' in tile:
                     kind = '4way'
+                    angle = 2
+                    drivable = True
+                elif 'part' in tile:
+                    kind = MAP_FOLDER + tile
                     angle = 2
                     drivable = True
                 else:
@@ -919,7 +928,6 @@ class Simulator(gym.Env):
                     [-0.30, 0, -0.20],
                     [-0.50, 0, -0.20],
                 ],
-
                 [
                     [-0.50, 0, 0.20],
                     [-0.30, 0, 0.20],
@@ -970,7 +978,7 @@ class Simulator(gym.Env):
             ]) * self.road_tile_size
 
         # Template for each side of 4way intersection
-        elif kind.startswith('4way'):
+        elif kind.startswith('4way') or kind.startswith(MAP_FOLDER):
             pts = np.array([
                 [
                     [-0.20, 0, -0.50],
@@ -1464,7 +1472,6 @@ class Simulator(gym.Env):
         gl.glEnable(gl.GL_MULTISAMPLE)
         gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, multi_fbo)
         gl.glViewport(0, 0, width, height)
-
         # Clear the color and depth buffers
 
         c0, c1, c2 = self.horizon_color
@@ -1492,7 +1499,11 @@ class Simulator(gym.Env):
 
         x, y, z = pos + self.cam_offset
         dx, dy, dz = get_dir_vec(angle)
-
+        move_cam = 0.21#0.17  # 0.13
+        x = x + move_cam * dx
+        y = y + move_cam * dy
+        z = z + move_cam * dz
+        
         gl.glMatrixMode(gl.GL_MODELVIEW)
         gl.glLoadIdentity()
 
@@ -1510,10 +1521,7 @@ class Simulator(gym.Env):
         # dy = -dy
         # dz = -dz
 
-        move_cam = 0.17  # 0.13
-        x = x + move_cam * dx
-        y = y + move_cam * dy
-        z = z + move_cam * dz
+        
 
         if top_down:
             gl.gluLookAt(

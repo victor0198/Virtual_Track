@@ -1,0 +1,59 @@
+tiles:
+- [part1   , part2    , part3      , part4     , part5       , part6     , part7     ]
+- [part8   , part9    , part10      , part11     , part12       , part13     , part14     ]
+- [part15   , part16    , part17      , part18     , part19       , part20     , part21     ]
+- [part22   , part23    , part24      , part25     , part26       , part27     , part28     ]
+- [part29    , part30      , part31     , part32       , part33     , part34   , part35     ]
+- [part36    , part37      , part38     , part39       , part40     , part41   , part42     ]
+- [part43    , part44      , part45     , part46       , part47     , part48   , part49     ]
+
+objects:
+
+- kind: bb
+  pos: [1.7, 1.6]
+  rotate: 180
+  height: 0.155
+
+- kind: traffic_light
+  pos: [2.15, 1.8]
+  rotate: 180
+  height: 0.24
+
+- kind: duckiebot
+  pos: [1.85, 1]
+  rotate: 180
+  height: 0.16
+
+
+
+
+
+- kind: building
+  pos: [3.46, 2.67]
+  rotate: 180
+  height: 0.6
+
+- kind: house
+  pos: [6, 4.5]
+  rotate: 90
+  height: 0.5
+
+- kind: barrier
+  pos: [1.08, 0.16]
+  rotate: 182.56
+  height: 0.08
+
+- kind: cone
+  pos: [3.76, 1.95]
+  rotate: 85.59
+  height: 0.08
+
+
+- kind: pedestrian
+  pos: [6.2, 5.80]
+  rotate: 90
+  height: 0.17
+  static: False
+
+
+tile_size: 2.2

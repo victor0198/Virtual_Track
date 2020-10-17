@@ -1,18 +1,40 @@
 # Blender MTL File: 'None'
-# Material Count: 2
+# Material Count: 4
 
 newmtl Black
-Ns 225.000000
+Ns 143.460014
 Ka 1.000000 1.000000 1.000000
 Kd 0.800000 0.800000 0.800000
+Ks 0.537975 0.537975 0.537975
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd /home/dellen/Documents/bfmc/Virtual_Track/gym_duckietown/textures/blackkk.png
+
+newmtl Red
+Ns 0.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.017695 0.009299
 Ks 0.500000 0.500000 0.500000
 Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 1.000000
 illum 2
-map_Kd ../textures/black.png
+map_Kd /home/dellen/Documents/bfmc/Virtual_Track/gym_duckietown/textures/stop_light.jpeg
 
 newmtl White
+Ns 24.655322
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd /home/dellen/Documents/bfmc/Virtual_Track/gym_duckietown/textures/hex.png
+
+newmtl White.001
 Ns 225.000000
 Ka 1.000000 1.000000 1.000000
 Kd 0.800000 0.800000 0.800000
@@ -21,4 +43,3 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 1.000000
 illum 2
-map_Kd ../textures/hex.png

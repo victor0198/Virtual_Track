@@ -68,19 +68,19 @@ def on_key_press(symbol, modifiers):
     elif symbol == key.E:
         cam_angle[2] += 5
     elif symbol == key.UP:
-        if modifiers:  # Mod+Up for height
-            cam_offset[1] += .1
-        else:
-            cam_offset[0] += .1
+        #if modifiers:  # Mod+Up for height
+        cam_offset[1] += 1
+        #else:
+        #    cam_offset[0] += .1
     elif symbol == key.DOWN:
-        if modifiers:  # Mod+Down for height
-            cam_offset[1] -= .1
-        else:
-            cam_offset[0] -= .1
+        #if modifiers:  # Mod+Down for height
+        cam_offset[1] -= 1
+        #else:
+        #    cam_offset[0] -= .1
     elif symbol == key.LEFT:
-        cam_offset[2] -= .1
+        cam_offset[2] -= 1
     elif symbol == key.RIGHT:
-        cam_offset[2] += .1
+        cam_offset[2] += 1
 
     # Take a screenshot
     # UNCOMMENT IF NEEDED - Skimage depencency
