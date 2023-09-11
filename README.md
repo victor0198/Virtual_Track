@@ -3,8 +3,7 @@
 [Duckietown](http://duckietown.org/) self-driving car simulator environments for OpenAI Gym.
 
 <p align="center">
-<img src="media/top_View.png" width="300px"><br>
-<img src="media/utm_stop_731.png" width="300px"><br>
+<img src="media/utm_stop_731.png" width="650px"><br>
 </p>
 
 
