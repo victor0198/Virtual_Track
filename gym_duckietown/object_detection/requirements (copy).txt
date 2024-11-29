@@ -1,5 +1,5 @@
 Cython==0.29.14
-numpy==1.18.1
+numpy==1.22.0
 opencv-python==4.2.0.32
 protobuf==3.11.3
 pycocotools==2.0
